@@ -152,7 +152,6 @@
     </div>
 
     <!-- ========================================================================= -->
-<<<<<<< HEAD
     <!-- ================ PORTAL PÚBLICO DE RESERVAS PARA PACIENTES ============== -->
     <!-- ========================================================================= -->
     <div id="public-booking-screen" class="hidden fixed inset-0 z-50 bg-clinical-bg overflow-y-auto">
@@ -293,12 +292,6 @@
     <!-- ========================================================================= -->
     <div id="auth-screen" class="fixed inset-0 z-50 bg-clinical-bg flex flex-col justify-center items-center p-4 sm:p-6 overflow-y-auto">
         <div class="w-full max-w-md surface-card rounded-2xl p-6 sm:p-8 shadow-elevated space-y-5 my-auto">
-=======
-    <!-- ================ PANTALLA DE ACCESO PROFESIONAL (LOGIN) ================= -->
-    <!-- ========================================================================= -->
-    <div id="auth-screen" class="fixed inset-0 z-50 bg-clinical-bg flex flex-col justify-center items-center p-4 sm:p-6 overflow-y-auto">
-        <div class="w-full max-w-md surface-card rounded-2xl p-6 sm:p-8 shadow-elevated space-y-6 my-auto">
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             <!-- Brand Header -->
             <div class="flex items-start justify-between border-b border-clinical-border pb-4">
                 <div class="flex items-center gap-3.5">
@@ -349,13 +342,8 @@
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-clinical-ink mb-1.5">Usuario o correo profesional</label>
-<<<<<<< HEAD
                     <input type="text" id="auth-username" required autocomplete="username" placeholder="laura.kocher o correo@ejemplo.com" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
                     <p class="text-[11px] text-clinical-muted mt-1">Ingresá con el mismo usuario o correo desde cualquier dispositivo para ver tus pacientes y horarios.</p>
-=======
-                    <input type="text" id="auth-username" required autocomplete="username" placeholder="laura.kocher" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
-                    <p class="text-[11px] text-clinical-muted mt-1">Ingresá el mismo usuario en tu celular y en tu PC para sincronizar tus datos.</p>
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                 </div>
 
                 <div>
@@ -386,7 +374,7 @@
 
             <!-- Info Footer -->
             <div class="pt-3 border-t border-clinical-border flex items-center justify-between text-[11px] text-clinical-muted">
-                <span>Sincronización multi-dispositivo (consultorio-laura)</span>
+                <span>Sincronización encriptada multi-dispositivo</span>
                 <span id="auth-cloud-ready" class="font-mono-num text-clinical-secondary">Conectando...</span>
             </div>
         </div>
@@ -545,7 +533,6 @@
                         <span id="sync-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                         <span id="sync-status-text" class="hidden md:inline">Sincronizado en la nube</span>
                     </button>
-<<<<<<< HEAD
 
                     <button onclick="openBookingLinkModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg btn-rose-soft text-xs font-semibold">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -553,8 +540,6 @@
                         </svg>
                         <span class="hidden sm:inline">Link de reservas</span>
                     </button>
-=======
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
 
                     <button onclick="openPatientModal()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg btn-secondary text-xs font-semibold">
                         <svg class="w-3.5 h-3.5 text-clinical-plum" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -741,21 +726,9 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-<<<<<<< HEAD
                         <button onclick="toggleScheduleConfigPanel()" class="px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold flex items-center gap-2 border-clinical-plum text-clinical-plum">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
-=======
-                        <button onclick="switchTab('ajustes')" class="px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold flex items-center gap-2">
-                            <svg class="w-4 h-4 text-clinical-plum" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Configurar mis horarios</span>
-                        </button>
-                        <button onclick="copyWeeklyFreeSlotsToClipboard()" class="px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold flex items-center gap-2">
-                            <svg class="w-4 h-4 text-clinical-secondary" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/>
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                             </svg>
                             <span>Configurar días y horarios</span>
                         </button>
@@ -949,13 +922,8 @@
                     <!-- Parámetros Profesionales -->
                     <div class="surface-card rounded-xl p-6 space-y-5">
                         <div class="border-b border-clinical-border pb-4">
-<<<<<<< HEAD
                             <h3 class="text-base font-semibold text-clinical-ink">Parámetros del consultorio y honorarios</h3>
                             <p class="text-xs text-clinical-secondary mt-0.5">Datos de firma profesional, WhatsApp de contacto y cuenta bancaria</p>
-=======
-                            <h3 class="text-base font-semibold text-clinical-ink">Parámetros del consultorio y horarios</h3>
-                            <p class="text-xs text-clinical-secondary mt-0.5">Datos de firma profesional, horarios de atención y cuenta bancaria</p>
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                         </div>
 
                         <form onsubmit="saveSettings(event)" class="space-y-4">
@@ -989,7 +957,6 @@
                                 <div>
                                     <label class="block text-xs font-medium text-clinical-ink mb-1.5">Apertura agenda</label>
                                     <select id="set-start-hour" class="w-full px-3 py-2 rounded-xl text-sm input-clinical font-mono-num">
-                                        <option value="7">07:00 hs</option>
                                         <option value="8">08:00 hs</option>
                                         <option value="9">09:00 hs</option>
                                         <option value="10">10:00 hs</option>
@@ -1006,14 +973,13 @@
                                         <option value="19">19:00 hs</option>
                                         <option value="20">20:00 hs</option>
                                         <option value="21">21:00 hs</option>
-                                        <option value="22">22:00 hs</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="pt-2">
                                 <button type="submit" class="w-full py-2.5 rounded-xl btn-primary text-xs font-semibold">
-                                    Guardar configuración en mi cuenta
+                                    Guardar configuración
                                 </button>
                             </div>
                         </form>
@@ -1024,11 +990,7 @@
                         <div class="space-y-4">
                             <div class="border-b border-clinical-border pb-4 flex items-center justify-between">
                                 <div>
-<<<<<<< HEAD
                                     <h3 class="text-base font-semibold text-clinical-ink">Sincronización en la nube y link de pacientes</h3>
-=======
-                                    <h3 class="text-base font-semibold text-clinical-ink">Sincronización en la nube y portabilidad</h3>
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                                     <p class="text-xs text-clinical-secondary mt-0.5">Estado de tu cuenta profesional en Firebase y respaldo</p>
                                 </div>
                                 <button type="button" onclick="forceCloudSyncNow()" class="px-3 py-1.5 rounded-lg btn-secondary text-xs font-semibold text-clinical-plum">
@@ -1042,11 +1004,7 @@
                                     <span id="settings-account-badge" class="font-mono-num text-xs px-2.5 py-0.5 rounded-md bg-clinical-plumSoft text-clinical-plum">laura.kocher</span>
                                 </div>
                                 <p class="text-xs text-clinical-secondary leading-relaxed">
-<<<<<<< HEAD
                                     Todos tus pacientes, días de atención, sesiones y cobros quedan guardados en tu cuenta en la nube (<span class="font-mono-num">consultorio-laura</span>).
-=======
-                                    Todos tus pacientes, horarios configurados, sesiones y cobros quedan guardados dentro de tu cuenta en Firebase (<span class="font-mono-num">consultorio-laura</span>). Al iniciar sesión con este mismo usuario desde cualquier celular o computadora se cargan automáticamente.
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                                 </p>
                                 <button type="button" onclick="openBookingLinkModal()" class="w-full py-2 px-3 rounded-lg btn-rose-soft text-xs font-semibold flex items-center justify-center gap-1.5">
                                     <span>Abrir y compartir mi Link de Reservas</span>
@@ -1224,7 +1182,6 @@
                     <div>
                         <label class="block text-xs font-medium text-clinical-ink mb-1">Horario</label>
                         <select id="appt-time" required class="w-full px-3 py-2 rounded-xl text-xs input-clinical font-mono-num">
-                            <option value="07:00">07:00</option>
                             <option value="08:00">08:00</option>
                             <option value="09:00">09:00</option>
                             <option value="10:00">10:00</option>
@@ -1239,7 +1196,6 @@
                             <option value="19:00">19:00</option>
                             <option value="20:00">20:00</option>
                             <option value="21:00">21:00</option>
-                            <option value="22:00">22:00</option>
                         </select>
                     </div>
                     <div>
@@ -1710,12 +1666,7 @@
                 defaultFee: 25000,
                 startHour: 9,
                 endHour: 20
-<<<<<<< HEAD
             }),
-=======
-            },
-            // Inicia 100% vacío para cuentas nuevas
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             patients: [],
             appointments: [],
             blockedSlots: []
@@ -1734,39 +1685,24 @@
         let pendingSlotSelection = { date: null, time: null };
         let isCreatingInlinePatient = false;
 
-<<<<<<< HEAD
         // --- 2. INICIALIZACIÓN DE FIREBASE CON REGLAS ESTRICTAS Y SOPORTE MULTI-AUTH ---
-=======
-        // --- 2. INICIALIZACIÓN DIRECTA DE FIREBASE (SIN BLOQUEO POR AUTH ANÓNIMO) ---
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
         async function initCloudConnection() {
             const readyLabel = document.getElementById('auth-cloud-ready');
             try {
                 const firebaseConfig = {
-                    apiKey: "AIzaSyCjYrrXHcIf_3r7ToNyKhoAOZXMk4XNmmw",
+                    apiKey: "AIzaSyCjYrrXhcIf_3r7ToNyKhoAOZXMk4XNmmw",
                     authDomain: "consultorio-laura.firebaseapp.com",
                     projectId: "consultorio-laura",
                     storageBucket: "consultorio-laura.firebasestorage.app",
                     messagingSenderId: "933368329440",
                     appId: "1:933368329440:web:9548c31df444a563bfcc85"
                 };
-<<<<<<< HEAD
                 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
                 auth = getAuth(app);
                 db = getFirestore(app);
 
                 if (readyLabel) readyLabel.textContent = 'Nube activa';
 
-=======
-
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                if (readyLabel) readyLabel.textContent = 'Nube activa';
-
-                // Intentar inicio de sesión anónimo sin abortar si no está habilitado en consola
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
@@ -1774,27 +1710,18 @@
                         await signInAnonymously(auth);
                     }
                 } catch (authErr) {
-<<<<<<< HEAD
                     console.warn('Acceso directo a Firestore habilitado:', authErr);
-=======
-                    console.warn('Auth anónimo no requerido si las reglas de Firestore están abiertas:', authErr);
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                 }
 
                 onAuthStateChanged(auth, (user) => {
                     firebaseUser = user;
-<<<<<<< HEAD
                     if (readyLabel) readyLabel.textContent = (user || db) ? 'Nube activa' : 'Modo local';
-=======
-                    if (readyLabel) readyLabel.textContent = 'Nube activa';
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                 });
             } catch (err) {
-                console.error('Error inicializando Firebase:', err);
-                if (readyLabel) readyLabel.textContent = 'Modo local';
+                console.warn('Fallback a persistencia local segura:', err);
+                if (readyLabel) readyLabel.textContent = 'Almacenamiento local activo';
             }
 
-<<<<<<< HEAD
             // Verificar si la URL solicita el Portal Público de Reservas (?reservar=CUENTA o #reservar=CUENTA)
             const urlParams = new URLSearchParams(window.location.search);
             let bookingAccount = urlParams.get('reservar');
@@ -1810,9 +1737,6 @@
             }
 
             // Verificar si ya había una sesión profesional iniciada
-=======
-            // Verificar si ya había una sesión profesional iniciada en este navegador
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             const savedSession = localStorage.getItem(SESSION_KEY);
             if (savedSession) {
                 try {
@@ -1826,7 +1750,7 @@
             }
         }
 
-<<<<<<< HEAD
+        // Rutas de documento en Firestore (artifacts/lic-laura-kocher-clinical/public/data/clinical_workspaces/{accountKey})
         // Rutas de documento en Firestore (cumpliendo la ruta artifacts/{appId}/public/data/clinical_workspaces/{accountKey} + espejo directo)
         function getPrimaryWorkspaceRef(accountKey) {
             return doc(db, 'artifacts', appId, 'public', 'data', 'clinical_workspaces', accountKey);
@@ -1834,15 +1758,6 @@
 
         function getRootMirrorWorkspaceRef(accountKey) {
             return doc(db, 'clinical_workspaces', accountKey);
-=======
-        // Referencias de documento en Firestore (colección directa + respaldo compatible)
-        function getPrimaryWorkspaceRef(accountKey) {
-            return doc(db, 'clinical_workspaces', accountKey);
-        }
-
-        function getLegacyWorkspaceRef(accountKey) {
-            return doc(db, 'artifacts', appId, 'public', 'data', 'clinical_workspaces', accountKey);
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
         }
 
         async function fetchWorkspaceFromCloud(accountKey) {
@@ -1855,7 +1770,6 @@
                     return primarySnap.data();
                 }
 
-<<<<<<< HEAD
                 // Verificar si había datos en la colección raíz y migrarlos
                 const rootRef = getRootMirrorWorkspaceRef(accountKey);
                 const rootSnap = await getDoc(rootRef);
@@ -1863,15 +1777,6 @@
                     const rootData = rootSnap.data();
                     await setDoc(primaryRef, rootData, { merge: true });
                     return rootData;
-=======
-                // Verificar si había datos en la ruta anterior y migrarlos
-                const legacyRef = getLegacyWorkspaceRef(accountKey);
-                const legacySnap = await getDoc(legacyRef);
-                if (legacySnap.exists()) {
-                    const legacyData = legacySnap.data();
-                    await setDoc(primaryRef, legacyData, { merge: true });
-                    return legacyData;
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                 }
                 return null;
             } catch (err) {
@@ -1883,10 +1788,6 @@
             }
         }
 
-<<<<<<< HEAD
-=======
-        // Normalización de identificador de cuenta y hash simple de contraseña
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
         function normalizeAccountKey(username) {
             return String(username || '')
                 .trim()
@@ -2023,7 +1924,6 @@
             const submitBtn = document.getElementById('auth-submit-btn');
             submitBtn.disabled = true;
             document.getElementById('auth-error-box').classList.add('hidden');
-<<<<<<< HEAD
 
             // Si ingresó un email, intentar también autenticar con Firebase Email/Password si está activo en consola
             if (auth && rawUser.includes('@') && rawPass.length >= 6) {
@@ -2037,8 +1937,6 @@
                     console.info('Sincronización directa por Firestore Workspace activa:', emailAuthErr.code);
                 }
             }
-=======
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
 
             try {
                 let remoteData = null;
@@ -2048,21 +1946,13 @@
                         remoteData = await fetchWorkspaceFromCloud(accountKey);
                     } catch (cloudErr) {
                         if (cloudErr && (cloudErr.code === 'permission-denied' || String(cloudErr.message || '').includes('Missing or insufficient permissions'))) {
-<<<<<<< HEAD
                             showAuthError('Permiso denegado en Firebase: verificá en Firebase Console > Firestore > Reglas que diga allow read, write: if true; y tocá Publicar.');
-=======
-                            showAuthError('Permiso denegado en Firebase: verificá en Firebase Console > Firestore > Reglas que diga allow read, write: if true; y tocá Publicar (o activá Acceso Anónimo en Authentication).');
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                             submitBtn.disabled = false;
                             return;
                         }
                     }
                 }
 
-<<<<<<< HEAD
-=======
-                // Si no se encontró en la nube pero existe copia local en este navegador, usarla para sincronizarla
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                 if (!remoteData) {
                     const localRaw = localStorage.getItem(LOCAL_MIRROR_PREFIX + accountKey);
                     if (localRaw) {
@@ -2079,10 +1969,6 @@
                         return;
                     }
 
-<<<<<<< HEAD
-=======
-                    // Si la cuenta ya existía en la nube con la misma contraseña, conservar sus datos sin pisarlos
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                     if (remoteData && (Array.isArray(remoteData.patients) || Array.isArray(remoteData.appointments))) {
                         applyWorkspaceData(remoteData, accountKey, rawUser, passHash);
                         await saveStateToCloudAndLocal();
@@ -2104,11 +1990,7 @@
                         defaultFee: 25000,
                         startHour: 9,
                         endHour: 20
-<<<<<<< HEAD
                     });
-=======
-                    };
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                     appState.patients = [];
                     appState.appointments = [];
                     appState.blockedSlots = [];
@@ -2116,10 +1998,6 @@
                     await saveStateToCloudAndLocal();
                     completeLoginTransition();
                 } else {
-<<<<<<< HEAD
-=======
-                    // Modo Login: cargar siempre lo que está guardado en la cuenta en la nube
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                     if (remoteData) {
                         if (remoteData.passwordHash && remoteData.passwordHash !== passHash && remoteData.passwordHash !== 'google_oauth_verified') {
                             showAuthError('Contraseña incorrecta para esta cuenta profesional.');
@@ -2130,10 +2008,6 @@
                         await saveStateToCloudAndLocal();
                         completeLoginTransition();
                     } else {
-<<<<<<< HEAD
-=======
-                        // Si la cuenta aún no existe en Firestore, la crea por primera vez en la nube
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                         appState.accountKey = accountKey;
                         appState.username = rawUser;
                         appState.passwordHash = passHash;
@@ -2158,10 +2032,6 @@
             appState.username = username;
             appState.passwordHash = passwordHash;
 
-<<<<<<< HEAD
-=======
-            // 1. Cargar espejo local inmediato para apertura rápida
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             const localRaw = localStorage.getItem(LOCAL_MIRROR_PREFIX + accountKey);
             let localData = null;
             if (localRaw) {
@@ -2171,10 +2041,6 @@
                 } catch (e) {}
             }
 
-<<<<<<< HEAD
-=======
-            // 2. Traer siempre los datos más recientes desde Cloud Firestore al abrir la página en cualquier dispositivo
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             if (db) {
                 try {
                     const cloudData = await fetchWorkspaceFromCloud(accountKey);
@@ -2182,10 +2048,6 @@
                         applyWorkspaceData(cloudData, accountKey, username, passwordHash);
                         localStorage.setItem(LOCAL_MIRROR_PREFIX + accountKey, JSON.stringify(cloudData));
                     } else if (localData) {
-<<<<<<< HEAD
-=======
-                        // Si este dispositivo tenía datos locales que aún no estaban en la nube, subirlos ahora
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
                         await saveStateToCloudAndLocal();
                     }
                 } catch (err) {
@@ -2286,10 +2148,6 @@
                 console.error(e);
             }
 
-<<<<<<< HEAD
-=======
-            // 2. Guardado directo en Cloud Firestore (sin depender de firebaseUser)
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             if (db) {
                 try {
                     setSyncIndicator('saving', 'Sincronizando...');
@@ -2618,11 +2476,7 @@
                 disponibilidad: ['Disponibilidad horaria', 'Gestión de turnos libres, horarios por día y link de reservas'],
                 finanzas: ['Honorarios y cobros', 'Control de cuentas por cobrar, vencimientos e historial de transacciones'],
                 pacientes: ['Directorio de pacientes', 'Fichas de pacientes activos, aranceles e historial administrativo'],
-<<<<<<< HEAD
                 ajustes: ['Configuración del consultorio', 'Parámetros profesionales, horarios por día y copias de respaldo']
-=======
-                ajustes: ['Configuración del consultorio', 'Parámetros profesionales, horarios de atención y copias de respaldo']
->>>>>>> 5460c6314086714673a8dd88a1b2fdef1aa4f33e
             };
 
             document.getElementById('header-title').textContent = headerMeta[tabName][0];
