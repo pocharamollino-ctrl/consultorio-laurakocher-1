@@ -138,12 +138,162 @@
 <body class="min-h-screen flex flex-col lg:flex-row bg-clinical-bg text-clinical-ink pb-20 lg:pb-0">
 
     <!-- ========================================================================= -->
+    <!-- ================ AVISO DE PERMISOS FIREBASE (SI CORRESPONDE) ============ -->
+    <!-- ========================================================================= -->
+    <div id="cloud-permission-banner" class="hidden fixed top-0 inset-x-0 z-[60] bg-clinical-overdueText text-white px-4 py-2.5 shadow-elevated">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <p id="cloud-permission-banner-text" class="text-xs leading-relaxed">
+                Permiso denegado en Firebase: verificá en Firebase Console &gt; Firestore &gt; Reglas que diga <code class="font-mono-num bg-black/20 px-1.5 py-0.5 rounded">allow read, write: if true;</code> y tocá Publicar (o activá Acceso Anónimo en Authentication).
+            </p>
+            <button type="button" onclick="forceCloudSyncNow()" class="px-3 py-1 rounded-lg bg-white text-clinical-overdueText text-xs font-semibold shrink-0 hover:bg-red-50 transition">
+                Reintentar conexión
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- ================ PORTAL PÚBLICO DE RESERVAS PARA PACIENTES ============== -->
+    <!-- ========================================================================= -->
+    <div id="public-booking-screen" class="hidden fixed inset-0 z-50 bg-clinical-bg overflow-y-auto">
+        <!-- Barra superior de vista previa (solo visible para la profesional) -->
+        <div id="public-preview-topbar" class="hidden sticky top-0 z-30 bg-clinical-ink text-white px-4 py-2.5 border-b border-white/10">
+            <div class="max-w-3xl mx-auto flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-clinical-rose"></span>
+                    <span class="font-medium">Vista previa del Portal de Pacientes (así ven tu link de reserva)</span>
+                </div>
+                <button type="button" onclick="exitPatientBookingPreview()" class="px-3 py-1 rounded-lg bg-white text-clinical-ink text-xs font-semibold hover:bg-clinical-subtle transition">
+                    Volver al panel profesional
+                </button>
+            </div>
+        </div>
+
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
+            <!-- Encabezado Profesional del Portal -->
+            <div class="surface-card rounded-2xl p-6 sm:p-7 shadow-elevated flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t-4 border-t-clinical-plum">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-clinical-plum text-white flex items-center justify-center font-semibold text-base tracking-wider shrink-0">
+                        LK
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-clinical-plum">Solicitud de Turno Online</span>
+                        <h1 id="public-psych-name" class="text-lg sm:text-xl font-semibold text-clinical-ink tracking-tight">Lic. Laura Kocher</h1>
+                        <p class="text-xs text-clinical-secondary">Psicología Clínica · Atención Online y Presencial</p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:items-end justify-center text-xs text-clinical-secondary bg-clinical-subtle/70 px-3.5 py-2.5 rounded-xl border border-clinical-border">
+                    <span>Duración de sesión: <strong class="font-mono-num text-clinical-ink">50 min</strong></span>
+                    <span id="public-fee-display" class="mt-0.5">Arancel de referencia: <strong class="font-mono-num text-clinical-plum">$25.000</strong></span>
+                </div>
+            </div>
+
+            <!-- Estado de carga o cuerpo de reserva -->
+            <div id="public-booking-form-wrap" class="surface-card rounded-2xl p-6 sm:p-8 shadow-card space-y-7">
+                <!-- Paso 1: Selección de Día -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-clinical-plum text-white font-mono-num text-xs font-semibold flex items-center justify-center">1</span>
+                            <h2 class="text-sm font-semibold text-clinical-ink">Seleccioná un día disponible</h2>
+                        </div>
+                        <span id="public-schedule-summary" class="text-[11px] text-clinical-secondary">Días habilitados por la profesional</span>
+                    </div>
+                    <p class="text-xs text-clinical-secondary pl-8">Solo se muestran los días de atención con horarios libres disponibles:</p>
+                    <div id="public-dates-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5 pt-1"></div>
+                </div>
+
+                <!-- Paso 2: Selección de Horario -->
+                <div class="space-y-3 pt-4 border-t border-clinical-border">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-clinical-plum text-white font-mono-num text-xs font-semibold flex items-center justify-center">2</span>
+                            <h2 class="text-sm font-semibold text-clinical-ink">Elegí el horario del turno</h2>
+                        </div>
+                        <span id="public-selected-date-label" class="font-mono-num text-xs font-semibold text-clinical-plum"></span>
+                    </div>
+                    <div id="public-hours-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-2.5 pt-1"></div>
+                </div>
+
+                <!-- Paso 3: Datos del Paciente -->
+                <form id="form-public-booking" onsubmit="submitPublicPatientBooking(event)" class="space-y-4 pt-4 border-t border-clinical-border">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-clinical-plum text-white font-mono-num text-xs font-semibold flex items-center justify-center">3</span>
+                        <h2 class="text-sm font-semibold text-clinical-ink">Completá tus datos para confirmar</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div>
+                            <label class="block text-xs font-medium text-clinical-ink mb-1.5">Nombre y apellido *</label>
+                            <input type="text" id="public-patient-name" required placeholder="Ej: Martín Gómez" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-clinical-ink mb-1.5">Teléfono WhatsApp *</label>
+                            <input type="tel" id="public-patient-phone" required placeholder="Ej: 11 2345 6789" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical font-mono-num">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-clinical-ink mb-1.5">Modalidad de atención *</label>
+                            <select id="public-patient-modality" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
+                                <option value="Online">Online (Videollamada)</option>
+                                <option value="Presencial">Consultorio Presencial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-clinical-ink mb-1.5">Motivo o aclaración (opcional)</label>
+                            <input type="text" id="public-patient-notes" placeholder="Primera consulta / Control / Horario..." class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
+                        </div>
+                    </div>
+
+                    <!-- Resumen de reserva seleccionada -->
+                    <div id="public-booking-selection-box" class="p-4 rounded-xl bg-clinical-plumSoft/70 border border-clinical-borderStrong flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <span class="text-[10px] font-semibold uppercase tracking-wider text-clinical-plum">Turno seleccionado</span>
+                            <p id="public-selection-summary-text" class="text-xs sm:text-sm font-semibold text-clinical-ink mt-0.5">Seleccioná un día y horario arriba</p>
+                        </div>
+                        <button type="submit" id="public-submit-btn" class="px-5 py-2.5 rounded-xl btn-primary text-xs sm:text-sm font-semibold shrink-0">
+                            Confirmar reserva de turno
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Pantalla de Confirmación Exitosa -->
+            <div id="public-booking-success-wrap" class="hidden surface-card rounded-2xl p-6 sm:p-8 shadow-elevated space-y-5 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-clinical-paidBg text-clinical-paidText flex items-center justify-center mx-auto">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                    </svg>
+                </div>
+                <div class="space-y-1.5 max-w-md mx-auto">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-clinical-paidText">Turno registrado en la agenda</span>
+                    <h3 class="text-lg font-semibold text-clinical-ink">Tu reserva quedó confirmada</h3>
+                    <p id="public-success-details" class="text-xs text-clinical-secondary leading-relaxed"></p>
+                </div>
+                <div class="p-4 rounded-xl bg-clinical-subtle/70 border border-clinical-border max-w-md mx-auto text-left space-y-1 text-xs">
+                    <p class="text-clinical-secondary">Profesional: <strong id="public-success-psych" class="text-clinical-ink">Lic. Laura Kocher</strong></p>
+                    <p class="text-clinical-secondary">Alias / CBU para honorarios: <strong id="public-success-alias" class="font-mono-num text-clinical-ink"></strong></p>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <button type="button" id="public-success-wa-btn" class="w-full sm:w-auto px-5 py-2.5 rounded-xl btn-primary text-xs font-semibold">
+                        Enviar aviso por WhatsApp al consultorio
+                    </button>
+                    <button type="button" onclick="resetPublicBookingForm()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl btn-secondary text-xs font-semibold">
+                        Realizar otra consulta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
     <!-- ================ PANTALLA DE ACCESO PROFESIONAL (LOGIN) ================= -->
     <!-- ========================================================================= -->
-    <div id="auth-screen" class="fixed inset-0 z-50 bg-clinical-bg flex flex-col justify-center items-center p-4 sm:p-6">
-        <div class="w-full max-w-md surface-card rounded-2xl p-6 sm:p-8 shadow-elevated space-y-6">
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-clinical-bg flex flex-col justify-center items-center p-4 sm:p-6 overflow-y-auto">
+        <div class="w-full max-w-md surface-card rounded-2xl p-6 sm:p-8 shadow-elevated space-y-5 my-auto">
             <!-- Brand Header -->
-            <div class="flex items-start justify-between border-b border-clinical-border pb-5">
+            <div class="flex items-start justify-between border-b border-clinical-border pb-4">
                 <div class="flex items-center gap-3.5">
                     <div class="w-10 h-10 rounded-xl bg-clinical-plum text-white flex items-center justify-center font-semibold text-sm tracking-wider shrink-0">
                         LK
@@ -157,6 +307,25 @@
                     <span class="w-1.5 h-1.5 rounded-full bg-clinical-plum"></span>
                     Cloud Sync
                 </span>
+            </div>
+
+            <!-- Botón de Inicio de Sesión con Google -->
+            <div class="space-y-2.5">
+                <button type="button" onclick="handleGoogleSignIn()" class="w-full py-2.5 px-4 rounded-xl btn-secondary text-xs font-semibold flex items-center justify-center gap-2.5 shadow-card hover:border-clinical-plum">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+                    </svg>
+                    <span>Iniciar sesión con Google</span>
+                </button>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-clinical-border"></div>
+                    <span class="flex-shrink mx-3 text-[11px] text-clinical-muted">o ingresá con tu usuario / correo</span>
+                    <div class="flex-grow border-t border-clinical-border"></div>
+                </div>
             </div>
 
             <!-- Mode Selector Tabs -->
@@ -173,7 +342,8 @@
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-clinical-ink mb-1.5">Usuario o correo profesional</label>
-                    <input type="text" id="auth-username" required autocomplete="username" placeholder="laura.kocher" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
+                    <input type="text" id="auth-username" required autocomplete="username" placeholder="laura.kocher o correo@ejemplo.com" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
+                    <p class="text-[11px] text-clinical-muted mt-1">Ingresá con el mismo usuario o correo desde cualquier dispositivo para ver tus pacientes y horarios.</p>
                 </div>
 
                 <div>
@@ -183,7 +353,7 @@
 
                 <div id="auth-register-fields" class="hidden space-y-4 pt-1 border-t border-clinical-border">
                     <div>
-                        <label class="block text-xs font-medium text-clinical-ink mb-1.5">Firma profesional (para notificaciones)</label>
+                        <label class="block text-xs font-medium text-clinical-ink mb-1.5">Firma profesional (para notificaciones y portal)</label>
                         <input type="text" id="auth-psych-name" value="Lic. Laura Kocher" class="w-full px-3.5 py-2.5 rounded-xl text-sm input-clinical">
                     </div>
                     <div>
@@ -192,7 +362,7 @@
                     </div>
                 </div>
 
-                <div id="auth-error-box" class="hidden p-3 rounded-xl bg-clinical-overdueBg border border-red-200 text-xs text-clinical-overdueText font-medium"></div>
+                <div id="auth-error-box" class="hidden p-3 rounded-xl bg-clinical-overdueBg border border-red-200 text-xs text-clinical-overdueText font-medium leading-relaxed"></div>
 
                 <button type="submit" id="auth-submit-btn" class="w-full py-2.5 px-4 rounded-xl btn-primary text-sm font-semibold flex items-center justify-center gap-2">
                     <span id="auth-submit-text">Ingresar al consultorio</span>
@@ -290,20 +460,33 @@
             </button>
 
             <!-- Quick Availability Action Box -->
-            <div class="pt-5">
-                <div class="p-3.5 rounded-xl bg-clinical-subtle/70 border border-clinical-border space-y-2.5">
+            <div class="pt-5 space-y-2.5">
+                <div class="p-3.5 rounded-xl bg-clinical-plumSoft/60 border border-clinical-borderStrong space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-semibold text-clinical-ink">Horarios disponibles</span>
-                        <span class="w-2 h-2 rounded-full bg-clinical-rose"></span>
+                        <span class="text-[11px] font-semibold text-clinical-plum">Portal de reservas web</span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
                     </div>
                     <p class="text-[11px] text-clinical-secondary leading-relaxed">
-                        Generá el resumen semanal de turnos libres para enviar por WhatsApp.
+                        Compartí tu enlace público para que los pacientes reserven solo en los días y horarios que habilites.
                     </p>
+                    <button onclick="openBookingLinkModal()" class="w-full py-2 px-3 rounded-lg btn-primary text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                        </svg>
+                        <span>Link de reservas</span>
+                    </button>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-clinical-subtle/70 border border-clinical-border space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-clinical-ink">Resumen por texto</span>
+                        <span class="w-2 h-2 rounded-full bg-clinical-rose"></span>
+                    </div>
                     <button onclick="openShareAvailabilityModal()" class="w-full py-2 px-3 rounded-lg btn-secondary text-xs font-semibold flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5 text-clinical-plum" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/>
                         </svg>
-                        <span>Compartir horarios</span>
+                        <span>Compartir horarios WA</span>
                     </button>
                 </div>
             </div>
@@ -345,11 +528,18 @@
 
                 <!-- Right Header Status & Actions -->
                 <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                    <!-- Cloud Sync Status Pill -->
-                    <div id="sync-status-pill" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-clinical-subtle border border-clinical-border text-[11px] font-medium text-clinical-secondary">
+                    <!-- Cloud Sync Status Pill (Clickable to force sync) -->
+                    <button type="button" onclick="forceCloudSyncNow()" title="Clic para sincronizar ahora con la nube" id="sync-status-pill" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-clinical-subtle hover:bg-clinical-plumSoft border border-clinical-border text-[11px] font-medium text-clinical-secondary transition">
                         <span id="sync-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                         <span id="sync-status-text" class="hidden md:inline">Sincronizado en la nube</span>
-                    </div>
+                    </button>
+
+                    <button onclick="openBookingLinkModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg btn-rose-soft text-xs font-semibold">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                        </svg>
+                        <span class="hidden sm:inline">Link de reservas</span>
+                    </button>
 
                     <button onclick="openPatientModal()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg btn-secondary text-xs font-semibold">
                         <svg class="w-3.5 h-3.5 text-clinical-plum" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -363,6 +553,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
                         </svg>
                         <span>Agendar turno</span>
+                    </button>
+
+                    <button onclick="switchTab('ajustes')" title="Configuración" class="lg:hidden p-1.5 rounded-lg border border-clinical-border text-clinical-secondary hover:text-clinical-ink">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
                     </button>
 
                     <button onclick="handleLogout()" title="Cerrar sesión" class="lg:hidden p-1.5 rounded-lg border border-clinical-border text-clinical-secondary hover:text-clinical-overdueText">
@@ -522,18 +719,24 @@
                 <!-- Header Card -->
                 <div class="surface-card rounded-xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-white via-clinical-subtle/50 to-clinical-roseSoft/40">
                     <div class="space-y-1 max-w-2xl">
-                        <span class="text-[11px] font-semibold uppercase tracking-wider text-clinical-plum">Planificación de capacidad</span>
-                        <h2 class="text-base sm:text-lg font-semibold text-clinical-ink">Grilla semanal de disponibilidad clínica</h2>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-clinical-plum">Planificación de capacidad y reservas</span>
+                        <h2 class="text-base sm:text-lg font-semibold text-clinical-ink">Grilla semanal y configuración de horarios por día</h2>
                         <p class="text-xs text-clinical-secondary">
-                            Hacé clic en cualquier horario libre para asignar un turno nuevo o reservar horario de supervisión/personal.
+                            Definí qué días y en qué franjas atendés. Los pacientes que entren a tu link de reserva solo podrán elegir entre los horarios habilitados libres.
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-                        <button onclick="copyWeeklyFreeSlotsToClipboard()" class="px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold flex items-center gap-2">
-                            <svg class="w-4 h-4 text-clinical-secondary" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/>
+                        <button onclick="toggleScheduleConfigPanel()" class="px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold flex items-center gap-2 border-clinical-plum text-clinical-plum">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
                             </svg>
-                            <span>Copiar disponibilidad</span>
+                            <span>Configurar días y horarios</span>
+                        </button>
+                        <button onclick="openBookingLinkModal()" class="px-3.5 py-2 rounded-xl btn-rose-soft text-xs font-semibold flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                            </svg>
+                            <span>Link de reservas</span>
                         </button>
                         <button onclick="openShareAvailabilityModal()" class="px-4 py-2 rounded-xl btn-primary text-xs font-semibold flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -542,6 +745,20 @@
                             <span>Enviar horarios por WhatsApp</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- Panel Desplegable: Configurador de Días y Horarios Determinados -->
+                <div id="avail-schedule-config-panel" class="hidden surface-card rounded-xl p-5 space-y-4 border-2 border-clinical-plum/30">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-clinical-border pb-3">
+                        <div>
+                            <h3 class="text-sm font-semibold text-clinical-ink">Días y horarios determinados de consultorio (Lunes a Sábado)</h3>
+                            <p class="text-xs text-clinical-secondary">Activá o desactivá cada día y tocá las horas puntuales que querés habilitar para turnos y reservas web.</p>
+                        </div>
+                        <button type="button" onclick="toggleScheduleConfigPanel()" class="self-end sm:self-auto px-3 py-1 rounded-lg btn-secondary text-xs font-semibold">
+                            Cerrar panel
+                        </button>
+                    </div>
+                    <div id="avail-weekly-schedule-editor" class="space-y-3"></div>
                 </div>
 
                 <!-- Week Controls & Status Legend -->
@@ -705,14 +922,20 @@
                     <!-- Parámetros Profesionales -->
                     <div class="surface-card rounded-xl p-6 space-y-5">
                         <div class="border-b border-clinical-border pb-4">
-                            <h3 class="text-base font-semibold text-clinical-ink">Parámetros del consultorio</h3>
-                            <p class="text-xs text-clinical-secondary mt-0.5">Datos de firma profesional, arancel de referencia y cuenta bancaria</p>
+                            <h3 class="text-base font-semibold text-clinical-ink">Parámetros del consultorio y honorarios</h3>
+                            <p class="text-xs text-clinical-secondary mt-0.5">Datos de firma profesional, WhatsApp de contacto y cuenta bancaria</p>
                         </div>
 
                         <form onsubmit="saveSettings(event)" class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-medium text-clinical-ink mb-1.5">Firma profesional en notificaciones</label>
-                                <input type="text" id="set-psych-name" required class="w-full px-3.5 py-2 rounded-xl text-sm input-clinical">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <div>
+                                    <label class="block text-xs font-medium text-clinical-ink mb-1.5">Firma profesional en notificaciones</label>
+                                    <input type="text" id="set-psych-name" required class="w-full px-3.5 py-2 rounded-xl text-sm input-clinical">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-clinical-ink mb-1.5">WhatsApp del consultorio (para reservas)</label>
+                                    <input type="tel" id="set-psych-phone" placeholder="54911..." class="w-full px-3.5 py-2 rounded-xl text-sm input-clinical font-mono-num">
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -738,11 +961,13 @@
                                         <option value="9">09:00 hs</option>
                                         <option value="10">10:00 hs</option>
                                         <option value="11">11:00 hs</option>
+                                        <option value="12">12:00 hs</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-clinical-ink mb-1.5">Cierre agenda</label>
                                     <select id="set-end-hour" class="w-full px-3 py-2 rounded-xl text-sm input-clinical font-mono-num">
+                                        <option value="16">16:00 hs</option>
                                         <option value="17">17:00 hs</option>
                                         <option value="18">18:00 hs</option>
                                         <option value="19">19:00 hs</option>
@@ -763,19 +988,27 @@
                     <!-- Sincronización Cloud y Respaldo -->
                     <div class="surface-card rounded-xl p-6 flex flex-col justify-between space-y-5">
                         <div class="space-y-4">
-                            <div class="border-b border-clinical-border pb-4">
-                                <h3 class="text-base font-semibold text-clinical-ink">Sincronización en la nube y portabilidad</h3>
-                                <p class="text-xs text-clinical-secondary mt-0.5">Estado de tu cuenta profesional y exportación de respaldo local</p>
+                            <div class="border-b border-clinical-border pb-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-base font-semibold text-clinical-ink">Sincronización en la nube y link de pacientes</h3>
+                                    <p class="text-xs text-clinical-secondary mt-0.5">Estado de tu cuenta profesional en Firebase y respaldo</p>
+                                </div>
+                                <button type="button" onclick="forceCloudSyncNow()" class="px-3 py-1.5 rounded-lg btn-secondary text-xs font-semibold text-clinical-plum">
+                                    Sincronizar ahora
+                                </button>
                             </div>
 
-                            <div class="p-4 rounded-xl bg-clinical-subtle/70 border border-clinical-border space-y-2">
+                            <div class="p-4 rounded-xl bg-clinical-subtle/70 border border-clinical-border space-y-2.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-semibold text-clinical-ink">Cuenta activa</span>
                                     <span id="settings-account-badge" class="font-mono-num text-xs px-2.5 py-0.5 rounded-md bg-clinical-plumSoft text-clinical-plum">laura.kocher</span>
                                 </div>
                                 <p class="text-xs text-clinical-secondary leading-relaxed">
-                                    Todos los cambios realizados en pacientes, agenda y cobros se sincronizan automáticamente en tiempo real con tu cuenta en la nube. Podés iniciar sesión con tus mismas credenciales desde tu celular o computadora.
+                                    Todos tus pacientes, días de atención, sesiones y cobros quedan guardados en tu cuenta en la nube (<span class="font-mono-num">consultorio-laura</span>).
                                 </p>
+                                <button type="button" onclick="openBookingLinkModal()" class="w-full py-2 px-3 rounded-lg btn-rose-soft text-xs font-semibold flex items-center justify-center gap-1.5">
+                                    <span>Abrir y compartir mi Link de Reservas</span>
+                                </button>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -803,6 +1036,20 @@
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <!-- Configurador completo de horarios por día en Ajustes -->
+                <div class="surface-card rounded-xl p-6 space-y-4">
+                    <div class="border-b border-clinical-border pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-base font-semibold text-clinical-ink">Días y horarios de atención por día (Lunes a Sábado)</h3>
+                            <p class="text-xs text-clinical-secondary mt-0.5">Activá o desactivá cada día con el interruptor y seleccioná las horas puntuales (08:00 a 21:00) habilitadas para turnos y reservas web.</p>
+                        </div>
+                        <button type="button" onclick="applyGeneralHoursToAllDays()" class="px-3 py-1.5 rounded-lg btn-secondary text-xs font-semibold shrink-0">
+                            Aplicar horario general a todos los días
+                        </button>
+                    </div>
+                    <div id="settings-weekly-schedule-editor" class="space-y-3"></div>
                 </div>
             </section>
 
@@ -1253,6 +1500,68 @@
         </div>
     </div>
 
+    <!-- 8. MODAL: ENLACE PÚBLICO DE RESERVAS PARA PACIENTES -->
+    <div id="modal-booking-link" class="fixed inset-0 z-50 hidden bg-clinical-ink/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-modal border border-clinical-border overflow-hidden animate-view">
+            <div class="px-5 py-4 border-b border-clinical-border flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-clinical-plum">Autogestión de turnos</span>
+                    <h3 class="text-sm font-semibold text-clinical-ink">Enlace público de reservas para pacientes</h3>
+                </div>
+                <button onclick="closeBookingLinkModal()" class="p-1.5 rounded-lg text-clinical-secondary hover:bg-clinical-subtle">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <p class="text-xs text-clinical-secondary leading-relaxed">
+                    Enviá este link a tus pacientes por WhatsApp. Al ingresar, solo verán los días y horarios libres que habilitaste, sin acceso a nombres ni datos de otros pacientes.
+                </p>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-medium text-clinical-ink">Tu enlace directo de reserva</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="booking-link-url-input" readonly class="flex-1 px-3 py-2 rounded-xl text-xs input-clinical font-mono-num bg-clinical-subtle/60">
+                        <button type="button" onclick="copyBookingLinkUrl()" class="px-3.5 py-2 rounded-xl btn-primary text-xs font-semibold shrink-0">
+                            Copiar link
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-clinical-ink mb-1.5">Enviar link a un paciente por WhatsApp (opcional)</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <select id="booking-link-patient-select" onchange="onBookingLinkPatientSelect(this.value)" class="px-3 py-2 rounded-xl text-xs input-clinical">
+                            <option value="">-- Seleccionar paciente --</option>
+                        </select>
+                        <input type="tel" id="booking-link-phone-input" placeholder="WhatsApp: 54911..." class="px-3 py-2 rounded-xl text-xs input-clinical font-mono-num">
+                    </div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-clinical-subtle/60 border border-clinical-border flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-semibold text-clinical-ink">Vista previa del paciente</p>
+                        <p class="text-[11px] text-clinical-secondary">Mirá cómo ven tus pacientes el portal de reserva y probá agendar.</p>
+                    </div>
+                    <button type="button" onclick="openPatientBookingPreview()" class="px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold shrink-0 text-clinical-plum border-clinical-plum">
+                        Abrir vista previa
+                    </button>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-clinical-border">
+                    <button type="button" onclick="closeBookingLinkModal(); switchTab('disponibilidad'); toggleScheduleConfigPanel();" class="w-full sm:w-auto px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold">
+                        Configurar mis días y horarios
+                    </button>
+                    <button type="button" onclick="shareBookingLinkViaWhatsApp()" class="w-full sm:w-auto px-4 py-2 rounded-xl btn-primary text-xs font-semibold">
+                        Enviar link por WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CONTENEDOR DE NOTIFICACIONES (TOAST) -->
     <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
 
@@ -1260,21 +1569,86 @@
     <!-- ====== FIREBASE CLOUD FIRESTORE & AUTHENTICATION + APP LOGIC ============ -->
     <!-- ========================================================================= -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getAuth,
+            signInAnonymously,
+            signInWithCustomToken,
+            onAuthStateChanged,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 1. CONFIGURACIÓN CLOUD Y ESTADO DE LA APLICACIÓN ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'lic-laura-kocher-clinical';
         const SESSION_KEY = 'lk_clinical_active_session_v2';
         const LOCAL_MIRROR_PREFIX = 'lk_clinical_workspace_v2_';
+        const CUSTOM_API_KEY_STORAGE = 'lk_clinical_custom_firebase_apikey';
 
         let db = null;
         let auth = null;
         let firebaseUser = null;
         let unsubscribeWorkspace = null;
+        let unsubscribePublicPortal = null;
         let isApplyingRemoteUpdate = false;
         let authMode = 'login'; // 'login' | 'register'
+
+        // Generador de grilla horaria por día (Lunes=1 a Sábado=6)
+        function createDefaultWeeklySchedule(startHour = 9, endHour = 20) {
+            const schedule = {};
+            for (let d = 1; d <= 6; d++) {
+                const hours = [];
+                const s = Number(startHour) || 9;
+                const e = Number(endHour) || 20;
+                for (let h = s; h <= e; h++) {
+                    hours.push(`${String(h).padStart(2, '0')}:00`);
+                }
+                schedule[d] = {
+                    enabled: d <= 5, // Lunes a Viernes activos por defecto, Sábado activable en 1 clic
+                    startHour: s,
+                    endHour: e,
+                    customHours: hours
+                };
+            }
+            return schedule;
+        }
+
+        function ensureWeeklySchedule(settings) {
+            if (!settings) settings = {};
+            const baseStart = Number(settings.startHour) || 9;
+            const baseEnd = Number(settings.endHour) || 20;
+            if (!settings.weeklySchedule || typeof settings.weeklySchedule !== 'object') {
+                settings.weeklySchedule = createDefaultWeeklySchedule(baseStart, baseEnd);
+            } else {
+                for (let d = 1; d <= 6; d++) {
+                    const dayCfg = settings.weeklySchedule[d];
+                    if (!dayCfg || typeof dayCfg !== 'object') {
+                        const fallbackHours = [];
+                        for (let h = baseStart; h <= baseEnd; h++) {
+                            fallbackHours.push(`${String(h).padStart(2, '0')}:00`);
+                        }
+                        settings.weeklySchedule[d] = {
+                            enabled: d <= 5,
+                            startHour: baseStart,
+                            endHour: baseEnd,
+                            customHours: fallbackHours
+                        };
+                    } else if (!Array.isArray(dayCfg.customHours)) {
+                        const s = Number(dayCfg.startHour) || baseStart;
+                        const e = Number(dayCfg.endHour) || baseEnd;
+                        const hrs = [];
+                        for (let h = s; h <= e; h++) {
+                            hrs.push(`${String(h).padStart(2, '0')}:00`);
+                        }
+                        dayCfg.customHours = hrs;
+                    }
+                }
+            }
+            return settings;
+        }
 
         let appState = {
             currentTab: 'agenda',
@@ -1284,24 +1658,34 @@
             accountKey: '',
             username: '',
             passwordHash: '',
-            settings: {
+            settings: ensureWeeklySchedule({
                 psychName: 'Lic. Laura Kocher',
+                psychPhone: '',
                 alias: 'laura.kocher.mp',
                 bankName: 'Mercado Pago',
                 defaultFee: 25000,
                 startHour: 9,
                 endHour: 20
-            },
-            // Inicia 100% vacío para cada cuenta nueva
+            }),
             patients: [],
             appointments: [],
             blockedSlots: []
         };
 
+        // Estado para el Portal Público de Pacientes (?reservar=CUENTA)
+        let publicPortalState = {
+            active: false,
+            isPreview: false,
+            accountKey: '',
+            selectedDate: '',
+            selectedTime: '',
+            workspaceData: null
+        };
+
         let pendingSlotSelection = { date: null, time: null };
         let isCreatingInlinePatient = false;
 
-        // --- 2. INICIALIZACIÓN DE FIREBASE CON REGLAS ESTRICTAS ---
+        // --- 2. INICIALIZACIÓN DE FIREBASE CON REGLAS ESTRICTAS Y SOPORTE MULTI-AUTH ---
         async function initCloudConnection() {
             const readyLabel = document.getElementById('auth-cloud-ready');
             try {
@@ -1313,23 +1697,43 @@
                     messagingSenderId: "933368329440",
                     appId: "1:933368329440:web:9548c31df444a563bfcc85"
                 };
-                const app = initializeApp(firebaseConfig);
+                const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                if (readyLabel) readyLabel.textContent = 'Nube activa';
+
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (authErr) {
+                    console.warn('Acceso directo a Firestore habilitado:', authErr);
                 }
 
                 onAuthStateChanged(auth, (user) => {
                     firebaseUser = user;
-                    if (readyLabel) readyLabel.textContent = user ? 'Nube activa' : 'Modo local';
+                    if (readyLabel) readyLabel.textContent = (user || db) ? 'Nube activa' : 'Modo local';
                 });
             } catch (err) {
                 console.warn('Fallback a persistencia local segura:', err);
                 if (readyLabel) readyLabel.textContent = 'Almacenamiento local activo';
+            }
+
+            // Verificar si la URL solicita el Portal Público de Reservas (?reservar=CUENTA o #reservar=CUENTA)
+            const urlParams = new URLSearchParams(window.location.search);
+            let bookingAccount = urlParams.get('reservar');
+            if (!bookingAccount && window.location.hash.includes('reservar=')) {
+                bookingAccount = window.location.hash.split('reservar=')[1].split('&')[0];
+            }
+            if (bookingAccount) {
+                const cleanKey = normalizeAccountKey(decodeURIComponent(bookingAccount));
+                if (cleanKey) {
+                    await openPublicBookingPortal(cleanKey, false);
+                    return;
+                }
             }
 
             // Verificar si ya había una sesión profesional iniciada
@@ -1346,7 +1750,43 @@
             }
         }
 
-        // Normalización de identificador de cuenta y hash simple de contraseña
+        // Rutas de documento en Firestore (cumpliendo la ruta artifacts/{appId}/public/data/clinical_workspaces/{accountKey} + espejo directo)
+        function getPrimaryWorkspaceRef(accountKey) {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'clinical_workspaces', accountKey);
+        }
+
+        function getRootMirrorWorkspaceRef(accountKey) {
+            return doc(db, 'clinical_workspaces', accountKey);
+        }
+
+        async function fetchWorkspaceFromCloud(accountKey) {
+            if (!db || !accountKey) return null;
+            try {
+                const primaryRef = getPrimaryWorkspaceRef(accountKey);
+                const primarySnap = await getDoc(primaryRef);
+                document.getElementById('cloud-permission-banner').classList.add('hidden');
+                if (primarySnap.exists()) {
+                    return primarySnap.data();
+                }
+
+                // Verificar si había datos en la colección raíz y migrarlos
+                const rootRef = getRootMirrorWorkspaceRef(accountKey);
+                const rootSnap = await getDoc(rootRef);
+                if (rootSnap.exists()) {
+                    const rootData = rootSnap.data();
+                    await setDoc(primaryRef, rootData, { merge: true });
+                    return rootData;
+                }
+                return null;
+            } catch (err) {
+                console.error('Error leyendo desde Firestore:', err);
+                if (err && (err.code === 'permission-denied' || String(err.message || '').includes('Missing or insufficient permissions'))) {
+                    document.getElementById('cloud-permission-banner').classList.remove('hidden');
+                }
+                throw err;
+            }
+        }
+
         function normalizeAccountKey(username) {
             return String(username || '')
                 .trim()
@@ -1380,7 +1820,7 @@
             }
         }
 
-        // --- 3. AUTENTICACIÓN PROFESIONAL Y SINCRONIZACIÓN FIRESTORE EN TIEMPO REAL ---
+        // --- 3. AUTENTICACIÓN MULTI-MÉTODO (GOOGLE, EMAIL/PASSWORD Y CUENTA DIRECTA) ---
         window.setAuthMode = function(mode) {
             authMode = mode;
             const loginBtn = document.getElementById('tab-auth-login');
@@ -1409,6 +1849,61 @@
             errBox.classList.remove('hidden');
         }
 
+        // Método A: Iniciar sesión con Google (Popup oficial de Firebase Auth)
+        window.handleGoogleSignIn = async function() {
+            const errBox = document.getElementById('auth-error-box');
+            errBox.classList.add('hidden');
+            if (!auth) {
+                showAuthError('El servicio de autenticación aún no está listo. Verificá tu conexión.');
+                return;
+            }
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                const email = user.email || user.displayName || 'laura.kocher';
+                const accountKey = normalizeAccountKey(email);
+                const passHash = 'google_oauth_verified';
+
+                let remoteData = null;
+                if (db) {
+                    remoteData = await fetchWorkspaceFromCloud(accountKey);
+                }
+                if (!remoteData) {
+                    const localRaw = localStorage.getItem(LOCAL_MIRROR_PREFIX + accountKey);
+                    if (localRaw) remoteData = JSON.parse(localRaw);
+                }
+
+                if (remoteData) {
+                    applyWorkspaceData(remoteData, accountKey, email, remoteData.passwordHash || passHash);
+                } else {
+                    appState.accountKey = accountKey;
+                    appState.username = email;
+                    appState.passwordHash = passHash;
+                    appState.settings = ensureWeeklySchedule({
+                        psychName: user.displayName || 'Lic. Laura Kocher',
+                        psychPhone: '',
+                        alias: 'laura.kocher.mp',
+                        bankName: 'Mercado Pago',
+                        defaultFee: 25000,
+                        startHour: 9,
+                        endHour: 20
+                    });
+                    appState.patients = [];
+                    appState.appointments = [];
+                    appState.blockedSlots = [];
+                }
+
+                await saveStateToCloudAndLocal();
+                completeLoginTransition();
+                showToast(`Sesión iniciada con Google (${email})`);
+            } catch (err) {
+                console.warn('Detalle de Google Sign-In:', err);
+                showAuthError('Para usar el botón de Google, habilitá el proveedor "Google" en Firebase Console > Authentication > Método de acceso. Mientras tanto, podés ingresar directamente con tu usuario y contraseña abajo.');
+            }
+        };
+
+        // Método B y C: Correo/Contraseña con Firebase Auth + Cuenta Profesional Directa en Cloud Firestore
         window.handleAuthSubmit = async function(e) {
             e.preventDefault();
             const rawUser = document.getElementById('auth-username').value.trim();
@@ -1427,41 +1922,74 @@
             const passHash = simpleHash(rawPass);
             const submitBtn = document.getElementById('auth-submit-btn');
             submitBtn.disabled = true;
+            document.getElementById('auth-error-box').classList.add('hidden');
+
+            // Si ingresó un email, intentar también autenticar con Firebase Email/Password si está activo en consola
+            if (auth && rawUser.includes('@') && rawPass.length >= 6) {
+                try {
+                    if (authMode === 'register') {
+                        await createUserWithEmailAndPassword(auth, rawUser, rawPass);
+                    } else {
+                        await signInWithEmailAndPassword(auth, rawUser, rawPass);
+                    }
+                } catch (emailAuthErr) {
+                    console.info('Sincronización directa por Firestore Workspace activa:', emailAuthErr.code);
+                }
+            }
 
             try {
                 let remoteData = null;
-                if (db && firebaseUser) {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'clinical_workspaces', accountKey);
-                    const snap = await getDoc(docRef);
-                    if (snap.exists()) {
-                        remoteData = snap.data();
+
+                if (db) {
+                    try {
+                        remoteData = await fetchWorkspaceFromCloud(accountKey);
+                    } catch (cloudErr) {
+                        if (cloudErr && (cloudErr.code === 'permission-denied' || String(cloudErr.message || '').includes('Missing or insufficient permissions'))) {
+                            showAuthError('Permiso denegado en Firebase: verificá en Firebase Console > Firestore > Reglas que diga allow read, write: if true; y tocá Publicar.');
+                            submitBtn.disabled = false;
+                            return;
+                        }
                     }
-                } else {
+                }
+
+                if (!remoteData) {
                     const localRaw = localStorage.getItem(LOCAL_MIRROR_PREFIX + accountKey);
-                    if (localRaw) remoteData = JSON.parse(localRaw);
+                    if (localRaw) {
+                        try {
+                            remoteData = JSON.parse(localRaw);
+                        } catch (parseErr) {}
+                    }
                 }
 
                 if (authMode === 'register') {
                     if (remoteData && remoteData.passwordHash && remoteData.passwordHash !== passHash) {
-                        showAuthError('Ese usuario ya está registrado. Iniciá sesión con tu contraseña.');
+                        showAuthError('Ese usuario ya está registrado. Cambiá a "Iniciar sesión" e ingresá tu contraseña.');
                         submitBtn.disabled = false;
                         return;
                     }
+
+                    if (remoteData && (Array.isArray(remoteData.patients) || Array.isArray(remoteData.appointments))) {
+                        applyWorkspaceData(remoteData, accountKey, rawUser, passHash);
+                        await saveStateToCloudAndLocal();
+                        completeLoginTransition();
+                        return;
+                    }
+
                     const psychName = document.getElementById('auth-psych-name').value.trim() || 'Lic. Laura Kocher';
                     const alias = document.getElementById('auth-alias').value.trim() || 'laura.kocher.mp';
 
                     appState.accountKey = accountKey;
                     appState.username = rawUser;
                     appState.passwordHash = passHash;
-                    appState.settings = {
+                    appState.settings = ensureWeeklySchedule({
                         psychName,
+                        psychPhone: '',
                         alias,
                         bankName: 'Mercado Pago',
                         defaultFee: 25000,
                         startHour: 9,
                         endHour: 20
-                    };
-                    // 100% vacío de fábrica
+                    });
                     appState.patients = [];
                     appState.appointments = [];
                     appState.blockedSlots = [];
@@ -1469,20 +1997,20 @@
                     await saveStateToCloudAndLocal();
                     completeLoginTransition();
                 } else {
-                    // Modo Login
                     if (remoteData) {
-                        if (remoteData.passwordHash && remoteData.passwordHash !== passHash) {
+                        if (remoteData.passwordHash && remoteData.passwordHash !== passHash && remoteData.passwordHash !== 'google_oauth_verified') {
                             showAuthError('Contraseña incorrecta para esta cuenta profesional.');
                             submitBtn.disabled = false;
                             return;
                         }
                         applyWorkspaceData(remoteData, accountKey, rawUser, passHash);
+                        await saveStateToCloudAndLocal();
                         completeLoginTransition();
                     } else {
-                        // Si la cuenta aún no existe en la nube, la inicializa limpia con esas credenciales
                         appState.accountKey = accountKey;
                         appState.username = rawUser;
                         appState.passwordHash = passHash;
+                        appState.settings = ensureWeeklySchedule(appState.settings);
                         appState.patients = [];
                         appState.appointments = [];
                         appState.blockedSlots = [];
@@ -1492,7 +2020,7 @@
                 }
             } catch (err) {
                 console.error('Error en autenticación:', err);
-                showAuthError('No se pudo verificar la cuenta. Reintentá en unos segundos.');
+                showAuthError('No se pudo verificar la cuenta. Revisá tu conexión e intentá nuevamente.');
             } finally {
                 submitBtn.disabled = false;
             }
@@ -1503,12 +2031,27 @@
             appState.username = username;
             appState.passwordHash = passwordHash;
 
-            // Cargar espejo local inmediato para latencia cero
             const localRaw = localStorage.getItem(LOCAL_MIRROR_PREFIX + accountKey);
+            let localData = null;
             if (localRaw) {
                 try {
-                    applyWorkspaceData(JSON.parse(localRaw), accountKey, username, passwordHash);
+                    localData = JSON.parse(localRaw);
+                    applyWorkspaceData(localData, accountKey, username, passwordHash);
                 } catch (e) {}
+            }
+
+            if (db) {
+                try {
+                    const cloudData = await fetchWorkspaceFromCloud(accountKey);
+                    if (cloudData) {
+                        applyWorkspaceData(cloudData, accountKey, username, passwordHash);
+                        localStorage.setItem(LOCAL_MIRROR_PREFIX + accountKey, JSON.stringify(cloudData));
+                    } else if (localData) {
+                        await saveStateToCloudAndLocal();
+                    }
+                } catch (err) {
+                    console.warn('No se pudo actualizar al iniciar desde la nube:', err);
+                }
             }
 
             completeLoginTransition();
@@ -1519,7 +2062,9 @@
             appState.username = username || data.username || accountKey;
             appState.passwordHash = passwordHash || data.passwordHash || '';
             if (data.settings) {
-                appState.settings = { ...appState.settings, ...data.settings };
+                appState.settings = ensureWeeklySchedule({ ...appState.settings, ...data.settings });
+            } else {
+                appState.settings = ensureWeeklySchedule(appState.settings);
             }
             appState.patients = Array.isArray(data.patients) ? data.patients : [];
             appState.appointments = Array.isArray(data.appointments) ? data.appointments : [];
@@ -1538,7 +2083,7 @@
             document.getElementById('settings-account-badge').textContent = appState.username;
 
             subscribeToRealtimeWorkspace(appState.accountKey);
-            switchTab('agenda');
+            switchTab(appState.currentTab || 'agenda');
         }
 
         function subscribeToRealtimeWorkspace(accountKey) {
@@ -1546,34 +2091,44 @@
                 unsubscribeWorkspace();
                 unsubscribeWorkspace = null;
             }
-            if (!db || !firebaseUser || !accountKey) {
+            if (!db || !accountKey) {
                 setSyncIndicator('local', 'Guardado en dispositivo');
                 return;
             }
 
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'clinical_workspaces', accountKey);
+            const docRef = getPrimaryWorkspaceRef(accountKey);
             unsubscribeWorkspace = onSnapshot(
                 docRef,
                 (snapshot) => {
+                    document.getElementById('cloud-permission-banner').classList.add('hidden');
                     if (snapshot.exists()) {
                         const data = snapshot.data();
                         isApplyingRemoteUpdate = true;
                         applyWorkspaceData(data, accountKey, appState.username, appState.passwordHash);
                         localStorage.setItem(LOCAL_MIRROR_PREFIX + accountKey, JSON.stringify(data));
                         refreshAllUI();
+                        if (publicPortalState.active && publicPortalState.isPreview) {
+                            publicPortalState.workspaceData = data;
+                            renderPublicBookingPortalUI();
+                        }
                         isApplyingRemoteUpdate = false;
                         setSyncIndicator('synced', 'Sincronizado en la nube');
                     }
                 },
                 (err) => {
                     console.warn('Error en suscripción Firestore:', err);
-                    setSyncIndicator('local', 'Guardado local activo');
+                    if (err && (err.code === 'permission-denied' || String(err.message || '').includes('Missing or insufficient permissions'))) {
+                        document.getElementById('cloud-permission-banner').classList.remove('hidden');
+                    }
+                    setSyncIndicator('local', 'Guardado en dispositivo');
                 }
             );
         }
 
         async function saveStateToCloudAndLocal() {
             if (!appState.accountKey || isApplyingRemoteUpdate) return;
+
+            appState.settings = ensureWeeklySchedule(appState.settings);
 
             const payload = {
                 accountKey: appState.accountKey,
@@ -1586,28 +2141,58 @@
                 updatedAt: new Date().toISOString()
             };
 
-            // 1. Espejo local instantáneo
             try {
                 localStorage.setItem(LOCAL_MIRROR_PREFIX + appState.accountKey, JSON.stringify(payload));
             } catch (e) {
                 console.error(e);
             }
 
-            // 2. Guardado en Cloud Firestore
-            if (db && firebaseUser) {
+            if (db) {
                 try {
                     setSyncIndicator('saving', 'Sincronizando...');
-                    const pubDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'clinical_workspaces', appState.accountKey);
-                    await setDoc(pubDocRef, payload, { merge: true });
+                    const primaryRef = getPrimaryWorkspaceRef(appState.accountKey);
+                    await setDoc(primaryRef, payload, { merge: true });
+                    document.getElementById('cloud-permission-banner').classList.add('hidden');
                     setSyncIndicator('synced', 'Sincronizado en la nube');
                 } catch (err) {
                     console.error('Error guardando en Firestore:', err);
+                    if (err && (err.code === 'permission-denied' || String(err.message || '').includes('Missing or insufficient permissions'))) {
+                        document.getElementById('cloud-permission-banner').classList.remove('hidden');
+                    }
                     setSyncIndicator('local', 'Guardado en dispositivo');
                 }
             } else {
                 setSyncIndicator('local', 'Guardado en dispositivo');
             }
         }
+
+        window.forceCloudSyncNow = async function() {
+            if (!appState.accountKey || !db) {
+                showToast('Iniciá sesión para sincronizar con la nube');
+                return;
+            }
+            try {
+                setSyncIndicator('saving', 'Sincronizando...');
+                const cloudData = await fetchWorkspaceFromCloud(appState.accountKey);
+                if (cloudData) {
+                    const localCount = appState.patients.length + appState.appointments.length + appState.blockedSlots.length;
+                    const cloudCount = (cloudData.patients?.length || 0) + (cloudData.appointments?.length || 0) + (cloudData.blockedSlots?.length || 0);
+                    if (cloudCount >= localCount) {
+                        applyWorkspaceData(cloudData, appState.accountKey, appState.username, appState.passwordHash);
+                        localStorage.setItem(LOCAL_MIRROR_PREFIX + appState.accountKey, JSON.stringify(cloudData));
+                        refreshAllUI();
+                    } else {
+                        await saveStateToCloudAndLocal();
+                    }
+                } else {
+                    await saveStateToCloudAndLocal();
+                }
+                setSyncIndicator('synced', 'Sincronizado en la nube');
+                showToast('Cuenta sincronizada con la nube');
+            } catch (e) {
+                showToast('Verificá las reglas de Firestore en tu consola de Firebase');
+            }
+        };
 
         window.handleLogout = function() {
             if (unsubscribeWorkspace) {
@@ -1623,7 +2208,7 @@
             document.getElementById('auth-screen').classList.remove('hidden');
         };
 
-        // --- 4. UTILIDADES DE FECHA, MONEDA Y FORMATO ---
+        // --- 4. UTILIDADES DE FECHA, MONEDA Y HORARIOS POR DÍA ---
         function getTodayISO() {
             return formatDateISO(new Date());
         }
@@ -1674,7 +2259,187 @@
             return name.trim().split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase();
         }
 
-        // --- 5. NAVEGACIÓN Y RENDERIZADO GENERAL ---
+        // Devuelve los horarios habilitados para una fecha específica según el día de la semana (1=Lun .. 6=Sáb)
+        function getWorkingHoursForDate(dateISO, customSettings = null) {
+            const settingsObj = ensureWeeklySchedule(customSettings || appState.settings);
+            if (!dateISO) return getWorkingHoursList(settingsObj);
+            const dt = parseISODate(dateISO);
+            const dayOfWeek = dt.getDay(); // 0=Dom, 1=Lun .. 6=Sáb
+            if (dayOfWeek === 0) return []; // Domingo sin atención
+            const dayCfg = settingsObj.weeklySchedule ? settingsObj.weeklySchedule[dayOfWeek] : null;
+            if (!dayCfg || !dayCfg.enabled) return [];
+            if (Array.isArray(dayCfg.customHours)) {
+                return [...dayCfg.customHours].sort();
+            }
+            const list = [];
+            const start = Number(dayCfg.startHour || settingsObj.startHour || 9);
+            const end = Number(dayCfg.endHour || settingsObj.endHour || 20);
+            for (let h = start; h <= end; h++) {
+                list.push(`${String(h).padStart(2, '0')}:00`);
+            }
+            return list;
+        }
+
+        function getWorkingHoursList(customSettings = null) {
+            const sObj = customSettings || appState.settings;
+            const list = [];
+            const start = Number(sObj.startHour) || 9;
+            const end = Number(sObj.endHour) || 20;
+            for (let h = start; h <= end; h++) {
+                list.push(`${String(h).padStart(2, '0')}:00`);
+            }
+            return list;
+        }
+
+        // --- 5. CONFIGURADOR INTERACTIVO DE DÍAS Y HORARIOS DETERMINADOS ---
+        window.toggleScheduleConfigPanel = function() {
+            const panel = document.getElementById('avail-schedule-config-panel');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                renderWeeklyScheduleEditors();
+            }
+        };
+
+        function renderWeeklyScheduleEditors() {
+            appState.settings = ensureWeeklySchedule(appState.settings);
+            const dayLabels = {
+                1: 'Lunes',
+                2: 'Martes',
+                3: 'Miércoles',
+                4: 'Jueves',
+                5: 'Viernes',
+                6: 'Sábado'
+            };
+            const allPossibleHours = [];
+            for (let h = 8; h <= 21; h++) {
+                allPossibleHours.push(`${String(h).padStart(2, '0')}:00`);
+            }
+
+            const html = [1, 2, 3, 4, 5, 6].map(dayNum => {
+                const cfg = appState.settings.weeklySchedule[dayNum];
+                const isEnabled = !!cfg.enabled;
+                const activeHours = Array.isArray(cfg.customHours) ? cfg.customHours : [];
+
+                const chipsHTML = allPossibleHours.map(hr => {
+                    const active = activeHours.includes(hr);
+                    return `
+                        <button type="button" onclick="toggleDaySpecificHour(${dayNum}, '${hr}')" class="font-mono-num px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
+                            !isEnabled
+                                ? 'opacity-40 pointer-events-none bg-clinical-bg border-clinical-border text-clinical-muted'
+                                : active
+                                    ? 'bg-clinical-plum text-white border-clinical-plum shadow-card'
+                                    : 'bg-white text-clinical-secondary border-clinical-border hover:border-clinical-plum'
+                        }">
+                            ${hr}
+                        </button>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="p-3.5 rounded-xl border ${isEnabled ? 'bg-white border-clinical-border' : 'bg-clinical-subtle/40 border-clinical-border'} space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-3">
+                                <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                                    <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="toggleDayEnabled(${dayNum}, this.checked)" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-clinical-borderStrong peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all relative peer-checked:bg-clinical-plum"></div>
+                                    <span class="text-xs font-semibold text-clinical-ink">${dayLabels[dayNum]}</span>
+                                </label>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${isEnabled ? 'bg-clinical-paidBg text-clinical-paidText' : 'bg-clinical-subtle text-clinical-muted'}">
+                                    ${isEnabled ? `${activeHours.length} horas habilitadas` : 'Día sin atención'}
+                                </span>
+                            </div>
+
+                            ${isEnabled ? `
+                                <div class="flex items-center gap-1.5 text-[11px]">
+                                    <span class="text-clinical-secondary">Rango:</span>
+                                    <select onchange="setDayHourRange(${dayNum}, this.value, null)" class="px-2 py-1 rounded-lg border border-clinical-border text-[11px] font-mono-num bg-white">
+                                        ${[8,9,10,11,12,13,14,15,16,17,18].map(h => `<option value="${h}" ${Number(cfg.startHour) === h ? 'selected' : ''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+                                    </select>
+                                    <span class="text-clinical-muted">a</span>
+                                    <select onchange="setDayHourRange(${dayNum}, null, this.value)" class="px-2 py-1 rounded-lg border border-clinical-border text-[11px] font-mono-num bg-white">
+                                        ${[12,13,14,15,16,17,18,19,20,21].map(h => `<option value="${h}" ${Number(cfg.endHour) === h ? 'selected' : ''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+                                    </select>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            ${chipsHTML}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const availEditor = document.getElementById('avail-weekly-schedule-editor');
+            if (availEditor) availEditor.innerHTML = html;
+
+            const settingsEditor = document.getElementById('settings-weekly-schedule-editor');
+            if (settingsEditor) settingsEditor.innerHTML = html;
+        }
+
+        window.toggleDayEnabled = function(dayNum, enabled) {
+            appState.settings = ensureWeeklySchedule(appState.settings);
+            appState.settings.weeklySchedule[dayNum].enabled = !!enabled;
+            if (enabled && (!appState.settings.weeklySchedule[dayNum].customHours || appState.settings.weeklySchedule[dayNum].customHours.length === 0)) {
+                const s = Number(appState.settings.startHour) || 9;
+                const e = Number(appState.settings.endHour) || 20;
+                const hrs = [];
+                for (let h = s; h <= e; h++) hrs.push(`${String(h).padStart(2, '0')}:00`);
+                appState.settings.weeklySchedule[dayNum].customHours = hrs;
+            }
+            saveStateToCloudAndLocal();
+            refreshAllUI();
+            showToast('Días de atención actualizados');
+        };
+
+        window.toggleDaySpecificHour = function(dayNum, hourStr) {
+            appState.settings = ensureWeeklySchedule(appState.settings);
+            const cfg = appState.settings.weeklySchedule[dayNum];
+            if (!cfg) return;
+            const set = new Set(cfg.customHours || []);
+            if (set.has(hourStr)) set.delete(hourStr);
+            else set.add(hourStr);
+            cfg.customHours = Array.from(set).sort();
+            saveStateToCloudAndLocal();
+            refreshAllUI();
+        };
+
+        window.setDayHourRange = function(dayNum, newStart, newEnd) {
+            appState.settings = ensureWeeklySchedule(appState.settings);
+            const cfg = appState.settings.weeklySchedule[dayNum];
+            if (!cfg) return;
+            if (newStart !== null) cfg.startHour = Number(newStart);
+            if (newEnd !== null) cfg.endHour = Number(newEnd);
+            if (cfg.endHour < cfg.startHour) cfg.endHour = cfg.startHour;
+            const hrs = [];
+            for (let h = cfg.startHour; h <= cfg.endHour; h++) {
+                hrs.push(`${String(h).padStart(2, '0')}:00`);
+            }
+            cfg.customHours = hrs;
+            saveStateToCloudAndLocal();
+            refreshAllUI();
+            showToast('Rango horario del día actualizado');
+        };
+
+        window.applyGeneralHoursToAllDays = function() {
+            const s = Number(document.getElementById('set-start-hour').value) || Number(appState.settings.startHour) || 9;
+            const e = Number(document.getElementById('set-end-hour').value) || Number(appState.settings.endHour) || 20;
+            appState.settings.startHour = s;
+            appState.settings.endHour = e;
+            for (let d = 1; d <= 6; d++) {
+                const hrs = [];
+                for (let h = s; h <= e; h++) hrs.push(`${String(h).padStart(2, '0')}:00`);
+                appState.settings.weeklySchedule[d].startHour = s;
+                appState.settings.weeklySchedule[d].endHour = e;
+                appState.settings.weeklySchedule[d].customHours = hrs;
+            }
+            saveStateToCloudAndLocal();
+            refreshAllUI();
+            showToast('Horario general aplicado a los días activos');
+        };
+
+        // --- 6. NAVEGACIÓN Y RENDERIZADO GENERAL ---
         window.switchTab = function(tabName) {
             appState.currentTab = tabName;
             const views = ['agenda', 'disponibilidad', 'finanzas', 'pacientes', 'ajustes'];
@@ -1707,10 +2472,10 @@
 
             const headerMeta = {
                 agenda: ['Agenda de turnos', 'Organización de sesiones, asistencia y liquidación de honorarios'],
-                disponibilidad: ['Disponibilidad horaria', 'Gestión de turnos libres y bloqueos de agenda semanal'],
+                disponibilidad: ['Disponibilidad horaria', 'Gestión de turnos libres, horarios por día y link de reservas'],
                 finanzas: ['Honorarios y cobros', 'Control de cuentas por cobrar, vencimientos e historial de transacciones'],
                 pacientes: ['Directorio de pacientes', 'Fichas de pacientes activos, aranceles e historial administrativo'],
-                ajustes: ['Configuración del consultorio', 'Parámetros profesionales, datos bancarios y copias de respaldo']
+                ajustes: ['Configuración del consultorio', 'Parámetros profesionales, horarios por día y copias de respaldo']
             };
 
             document.getElementById('header-title').textContent = headerMeta[tabName][0];
@@ -1720,6 +2485,7 @@
         };
 
         function refreshAllUI() {
+            appState.settings = ensureWeeklySchedule(appState.settings);
             document.getElementById('sidebar-brand-name').textContent = appState.settings.psychName;
             document.getElementById('sidebar-alias-label').textContent = `Alias: ${appState.settings.alias}`;
             const bankDisplay = appState.settings.bankName
@@ -1729,6 +2495,8 @@
 
             // Inputs de configuración
             document.getElementById('set-psych-name').value = appState.settings.psychName || 'Lic. Laura Kocher';
+            const phoneInput = document.getElementById('set-psych-phone');
+            if (phoneInput) phoneInput.value = appState.settings.psychPhone || '';
             document.getElementById('set-psych-alias').value = appState.settings.alias || '';
             document.getElementById('set-bank-name').value = appState.settings.bankName || '';
             document.getElementById('set-default-fee').value = appState.settings.defaultFee || 25000;
@@ -1738,6 +2506,7 @@
             updateGlobalKPIs();
             renderAgendaView();
             renderAvailabilityView();
+            renderWeeklyScheduleEditors();
             renderFinanzasView();
             renderPatientsView();
         }
@@ -1756,10 +2525,10 @@
             const totalMonthPaid = paidThisMonth.reduce((sum, a) => sum + Number(a.price || 0), 0);
 
             const weekDates = getWeekDates(appState.weekOffset);
-            const hours = getWorkingHoursList();
             let freeCount = 0;
             weekDates.forEach(d => {
-                hours.forEach(h => {
+                const dayHours = getWorkingHoursForDate(d);
+                dayHours.forEach(h => {
                     const booked = activeAppts.some(a => a.date === d && a.time === h);
                     const blocked = appState.blockedSlots.some(b => b.date === d && b.time === h);
                     if (!booked && !blocked) freeCount++;
@@ -1780,7 +2549,7 @@
             document.getElementById('badge-desktop-patients').textContent = appState.patients.length;
         }
 
-        // --- 6. VISTA 1: AGENDA Y TURNOS ---
+        // --- 7. VISTA 1: AGENDA Y TURNOS ---
         function getWeekDates(offsetWeeks = 0) {
             const today = new Date();
             const day = today.getDay();
@@ -1793,16 +2562,6 @@
                 dates.push(formatDateISO(d));
             }
             return dates;
-        }
-
-        function getWorkingHoursList() {
-            const list = [];
-            const start = Number(appState.settings.startHour) || 9;
-            const end = Number(appState.settings.endHour) || 20;
-            for (let h = start; h <= end; h++) {
-                list.push(`${String(h).padStart(2, '0')}:00`);
-            }
-            return list;
         }
 
         window.changeWeekOffset = function(delta) {
@@ -1867,6 +2626,7 @@
                 const dName = dayNames[dt.getDay()];
                 const dNum = String(dt.getDate()).padStart(2, '0');
                 const count = appState.appointments.filter(a => a.date === dISO && a.sessionStatus !== 'Cancelado').length;
+                const dayHours = getWorkingHoursForDate(dISO);
                 const isSelected = (appState.agendaQuickFilter === 'day' || appState.agendaQuickFilter === 'today') && appState.selectedDate === dISO;
                 const isToday = dISO === today;
 
@@ -1886,7 +2646,7 @@
                             <span class="font-mono-num text-base font-semibold">${dNum}</span>
                             <span class="font-mono-num text-[11px] ${
                                 isSelected ? 'text-purple-100' : count > 0 ? 'text-clinical-plum font-semibold' : 'text-clinical-muted'
-                            }">${count} ${count === 1 ? 'sesión' : 'sesiones'}</span>
+                            }">${dayHours.length === 0 && count === 0 ? 'Cerrado' : `${count} ${count === 1 ? 'sesión' : 'sesiones'}`}</span>
                         </div>
                     </button>
                 `;
@@ -1926,15 +2686,18 @@
                         <div class="max-w-xs mx-auto">
                             <h4 class="text-sm font-semibold text-clinical-ink">Sin sesiones asignadas en esta vista</h4>
                             <p class="text-xs text-clinical-secondary mt-1">
-                                Podés programar un turno seleccionando un horario disponible a la derecha o desde el botón inferior.
+                                Podés programar un turno manualmente o compartir tu link de reservas para que el paciente elija horario.
                             </p>
                         </div>
-                        <div class="pt-1">
+                        <div class="pt-1 flex flex-wrap items-center justify-center gap-2">
                             <button onclick="openAppointmentModal('${appState.selectedDate}', '10:00')" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-primary text-xs font-semibold">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
                                 </svg>
                                 <span>Programar turno</span>
+                            </button>
+                            <button onclick="openBookingLinkModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-secondary text-xs font-semibold">
+                                <span>Compartir link de reservas</span>
                             </button>
                         </div>
                     </div>
@@ -1943,8 +2706,8 @@
                 listEl.innerHTML = filtered.map(appt => renderAppointmentCardHTML(appt, today)).join('');
             }
 
-            // Horarios libres del día seleccionado
-            const hours = getWorkingHoursList();
+            // Horarios libres del día seleccionado según horario determinado por día
+            const hours = getWorkingHoursForDate(appState.selectedDate);
             const freeToday = hours.filter(h => {
                 const b = appState.appointments.some(a => a.date === appState.selectedDate && a.time === h && a.sessionStatus !== 'Cancelado');
                 const bl = appState.blockedSlots.some(x => x.date === appState.selectedDate && x.time === h);
@@ -1952,7 +2715,9 @@
             });
 
             const quickFreeEl = document.getElementById('agenda-quick-free-slots');
-            if (freeToday.length === 0) {
+            if (hours.length === 0) {
+                quickFreeEl.innerHTML = `<p class="text-xs text-clinical-muted">Día configurado sin atención habilitada. <button onclick="switchTab('disponibilidad'); toggleScheduleConfigPanel();" class="text-clinical-plum font-semibold underline">Habilitar horarios</button></p>`;
+            } else if (freeToday.length === 0) {
                 quickFreeEl.innerHTML = `<p class="text-xs text-clinical-muted">Agenda completa para esta fecha.</p>`;
             } else {
                 quickFreeEl.innerHTML = freeToday.map(h => `
@@ -2036,6 +2801,10 @@
                 ? `<span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-clinical-plumSoft text-clinical-plum">Online</span>`
                 : `<span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-clinical-roseSoft text-clinical-roseText">Presencial</span>`;
 
+            const webBadge = appt.bookedByPatient
+                ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">Reserva Web</span>`
+                : '';
+
             return `
                 <div class="surface-card rounded-xl p-4 hover:border-clinical-borderStrong transition ${sessionStatus === 'Cancelado' ? 'opacity-60' : ''}">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
@@ -2051,6 +2820,7 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                     <h4 class="text-sm font-semibold text-clinical-ink">${escapeHTML(appt.patientName)}</h4>
                                     ${modalityBadge}
+                                    ${webBadge}
                                     <select onchange="updateSessionStatusInline('${appt.id}', this.value)" class="text-[11px] font-medium px-2 py-0.5 rounded-md border border-clinical-border bg-clinical-bg text-clinical-secondary focus:outline-none">
                                         <option value="Programado" ${sessionStatus === 'Programado' ? 'selected' : ''}>Programado</option>
                                         <option value="Realizado" ${sessionStatus === 'Realizado' ? 'selected' : ''}>Realizado</option>
@@ -2115,77 +2885,91 @@
             showToast(`Estado actualizado a ${newStatus}`);
         };
 
-        // --- 7. VISTA 2: DISPONIBILIDAD Y HORARIOS LIBRES ---
+        // --- 8. VISTA 2: DISPONIBILIDAD Y HORARIOS LIBRES POR DÍA ---
         function renderAvailabilityView() {
             const weekDates = getWeekDates(appState.weekOffset);
             document.getElementById('avail-week-label').textContent = `${formatHumanDate(weekDates[0])} — ${formatHumanDate(weekDates[5], true)}`;
 
-            const hours = getWorkingHoursList();
             const container = document.getElementById('availability-grid-container');
             const today = getTodayISO();
 
             container.innerHTML = weekDates.map(dISO => {
                 const isToday = dISO === today;
+                const hours = getWorkingHoursForDate(dISO);
+                const dayAppts = appState.appointments.filter(a => a.date === dISO && a.sessionStatus !== 'Cancelado');
                 const freeCount = hours.filter(h => {
-                    const b = appState.appointments.some(a => a.date === dISO && a.time === h && a.sessionStatus !== 'Cancelado');
+                    const b = dayAppts.some(a => a.time === h);
                     const bl = appState.blockedSlots.some(x => x.date === dISO && x.time === h);
                     return !b && !bl;
                 }).length;
 
-                const slotsHTML = hours.map(h => {
-                    const appt = appState.appointments.find(a => a.date === dISO && a.time === h && a.sessionStatus !== 'Cancelado');
-                    const blocked = appState.blockedSlots.find(b => b.date === dISO && b.time === h);
-
-                    if (appt) {
-                        return `
-                            <div onclick="openEditAppointmentModal('${appt.id}')" class="cursor-pointer p-2 rounded-lg bg-clinical-plumSoft border border-purple-200 hover:border-clinical-plum transition flex items-center justify-between gap-2">
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="font-mono-num text-[11px] font-semibold text-clinical-plum">${h}</span>
-                                        <span class="text-[10px] text-clinical-secondary">${appt.modality}</span>
-                                    </div>
-                                    <p class="text-xs font-medium text-clinical-ink truncate">${escapeHTML(appt.patientName)}</p>
-                                </div>
-                                <span class="w-2 h-2 rounded-full shrink-0 ${appt.paymentStatus === 'paid' ? 'bg-emerald-600' : 'bg-amber-500'}" title="${appt.paymentStatus === 'paid' ? 'Acreditado' : 'Pendiente'}"></span>
-                            </div>
-                        `;
-                    } else if (blocked) {
-                        return `
-                            <div onclick="unblockSlot('${blocked.id}')" title="Clic para desbloquear horario" class="cursor-pointer p-2 rounded-lg bg-clinical-subtle border border-clinical-border hover:border-red-300 transition flex items-center justify-between gap-2 group">
-                                <div>
-                                    <span class="font-mono-num text-[11px] text-clinical-muted line-through">${h}</span>
-                                    <p class="text-[11px] font-medium text-clinical-secondary group-hover:text-clinical-overdueText">Horario reservado</p>
-                                </div>
-                                <svg class="w-3.5 h-3.5 text-clinical-muted group-hover:text-clinical-overdueText" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </div>
-                        `;
-                    } else {
-                        return `
-                            <button onclick="openSlotActionModal('${dISO}', '${h}')" class="w-full p-2 rounded-lg bg-clinical-paidBg/70 hover:bg-clinical-plum text-clinical-paidText hover:text-white border border-emerald-200/80 transition flex items-center justify-between group">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-mono-num text-[11px] font-semibold">${h}</span>
-                                    <span class="text-[11px] font-medium">Disponible</span>
-                                </div>
-                                <svg class="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                                </svg>
+                let slotsHTML = '';
+                if (hours.length === 0 && dayAppts.length === 0) {
+                    slotsHTML = `
+                        <div class="p-4 rounded-lg bg-clinical-subtle/50 border border-dashed border-clinical-border text-center space-y-2 my-auto">
+                            <p class="text-[11px] font-medium text-clinical-muted">Día sin atención</p>
+                            <button type="button" onclick="toggleScheduleConfigPanel()" class="text-[11px] font-semibold text-clinical-plum hover:underline">
+                                Habilitar día
                             </button>
-                        `;
-                    }
-                }).join('');
+                        </div>
+                    `;
+                } else {
+                    const combinedHours = Array.from(new Set([...hours, ...dayAppts.map(a => a.time)])).sort();
+                    slotsHTML = combinedHours.map(h => {
+                        const appt = dayAppts.find(a => a.time === h);
+                        const blocked = appState.blockedSlots.find(b => b.date === dISO && b.time === h);
+
+                        if (appt) {
+                            return `
+                                <div onclick="openEditAppointmentModal('${appt.id}')" class="cursor-pointer p-2 rounded-lg bg-clinical-plumSoft border border-purple-200 hover:border-clinical-plum transition flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="font-mono-num text-[11px] font-semibold text-clinical-plum">${h}</span>
+                                            <span class="text-[10px] text-clinical-secondary">${appt.modality}</span>
+                                        </div>
+                                        <p class="text-xs font-medium text-clinical-ink truncate">${escapeHTML(appt.patientName)}</p>
+                                    </div>
+                                    <span class="w-2 h-2 rounded-full shrink-0 ${appt.paymentStatus === 'paid' ? 'bg-emerald-600' : 'bg-amber-500'}" title="${appt.paymentStatus === 'paid' ? 'Acreditado' : 'Pendiente'}"></span>
+                                </div>
+                            `;
+                        } else if (blocked) {
+                            return `
+                                <div onclick="unblockSlot('${blocked.id}')" title="Clic para desbloquear horario" class="cursor-pointer p-2 rounded-lg bg-clinical-subtle border border-clinical-border hover:border-red-300 transition flex items-center justify-between gap-2 group">
+                                    <div>
+                                        <span class="font-mono-num text-[11px] text-clinical-muted line-through">${h}</span>
+                                        <p class="text-[11px] font-medium text-clinical-secondary group-hover:text-clinical-overdueText">Horario reservado</p>
+                                    </div>
+                                    <svg class="w-3.5 h-3.5 text-clinical-muted group-hover:text-clinical-overdueText" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <button onclick="openSlotActionModal('${dISO}', '${h}')" class="w-full p-2 rounded-lg bg-clinical-paidBg/70 hover:bg-clinical-plum text-clinical-paidText hover:text-white border border-emerald-200/80 transition flex items-center justify-between group">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono-num text-[11px] font-semibold">${h}</span>
+                                        <span class="text-[11px] font-medium">Disponible</span>
+                                    </div>
+                                    <svg class="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                                    </svg>
+                                </button>
+                            `;
+                        }
+                    }).join('');
+                }
 
                 return `
                     <div class="surface-card rounded-xl overflow-hidden flex flex-col ${isToday ? 'ring-1 ring-clinical-plum' : ''}">
                         <div class="px-3.5 py-2.5 ${isToday ? 'bg-clinical-plum text-white' : 'bg-clinical-subtle text-clinical-ink'} border-b border-clinical-border flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold">${formatHumanDate(dISO)}</p>
-                                <p class="font-mono-num text-[10px] ${isToday ? 'text-purple-100' : 'text-clinical-secondary'}">${freeCount} libres</p>
+                                <p class="font-mono-num text-[10px] ${isToday ? 'text-purple-100' : 'text-clinical-secondary'}">${hours.length === 0 ? 'Sin atención' : `${freeCount} libres`}</p>
                             </div>
                             ${isToday ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/20 text-white">Hoy</span>` : ''}
                         </div>
-                        <div class="p-2.5 space-y-1.5 flex-1">
+                        <div class="p-2.5 space-y-1.5 flex-1 flex flex-col">
                             ${slotsHTML}
                         </div>
                     </div>
@@ -2232,13 +3016,13 @@
 
         function buildWeeklyAvailabilityText() {
             const weekDates = getWeekDates(appState.weekOffset);
-            const hours = getWorkingHoursList();
             let lines = [
                 `Hola, ¿cómo estás? Te comparto los horarios disponibles de consultorio para esta semana:`
             ];
 
             let hasAny = false;
             weekDates.forEach(dISO => {
+                const hours = getWorkingHoursForDate(dISO);
                 const freeHours = hours.filter(h => {
                     const booked = appState.appointments.some(a => a.date === dISO && a.time === h && a.sessionStatus !== 'Cancelado');
                     const blocked = appState.blockedSlots.some(b => b.date === dISO && b.time === h);
@@ -2254,7 +3038,9 @@
                 lines.push(`- Sin horarios disponibles en esta semana.`);
             }
 
-            lines.push(`\nQuedo atenta a que me indiques qué horario te resulta más conveniente para confirmar el turno.\nSaludos cordiales,\n${appState.settings.psychName}`);
+            const bookingUrl = getShareableBookingUrl();
+            lines.push(`\nTambién podés elegir y reservar tu turno directamente desde este enlace:\n${bookingUrl}`);
+            lines.push(`\nSaludos cordiales,\n${appState.settings.psychName}`);
             return lines.join('\n');
         }
 
@@ -2309,7 +3095,407 @@
             closeShareAvailabilityModal();
         };
 
-        // --- 8. VISTA 3: HONORARIOS, COBROS E HISTORIAL ---
+        // --- 9. PORTAL PÚBLICO DE RESERVAS PARA PACIENTES (?reservar=CUENTA) ---
+        function getShareableBookingUrl() {
+            const base = window.location.origin + window.location.pathname;
+            const key = encodeURIComponent(appState.accountKey || 'laura_kocher');
+            return `${base}?reservar=${key}`;
+        }
+
+        window.openBookingLinkModal = function() {
+            document.getElementById('booking-link-url-input').value = getShareableBookingUrl();
+            const sel = document.getElementById('booking-link-patient-select');
+            if (sel) {
+                sel.innerHTML = `<option value="">-- Seleccionar paciente --</option>` + appState.patients.map(p =>
+                    `<option value="${p.id}">${escapeHTML(p.name)} (${escapeHTML(p.phone)})</option>`
+                ).join('');
+            }
+            const phoneIn = document.getElementById('booking-link-phone-input');
+            if (phoneIn) phoneIn.value = '';
+            document.getElementById('modal-booking-link').classList.remove('hidden');
+        };
+
+        window.onBookingLinkPatientSelect = function(patientId) {
+            const p = appState.patients.find(x => x.id === patientId);
+            const phoneIn = document.getElementById('booking-link-phone-input');
+            if (p && phoneIn) phoneIn.value = p.phone;
+        };
+
+        window.closeBookingLinkModal = function() {
+            document.getElementById('modal-booking-link').classList.add('hidden');
+        };
+
+        window.copyBookingLinkUrl = function() {
+            const url = getShareableBookingUrl();
+            copyTextToClipboard(url);
+            showToast('Link de reservas copiado al portapapeles');
+        };
+
+        window.shareBookingLinkViaWhatsApp = function() {
+            const url = getShareableBookingUrl();
+            const phoneInput = document.getElementById('booking-link-phone-input');
+            const phone = cleanPhoneForWhatsApp(phoneInput ? phoneInput.value : '');
+            const msg = `Hola, ¿cómo estás? Te comparto el enlace de agenda online para que puedas elegir el día y horario que te quede más cómodo para nuestra sesión:\n\n${url}\n\nSaludos cordiales,\n${appState.settings.psychName}`;
+            const waUrl = phone
+                ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+                : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            window.open(waUrl, '_blank', 'noopener,noreferrer');
+        };
+
+        window.openPatientBookingPreview = async function() {
+            closeBookingLinkModal();
+            await openPublicBookingPortal(appState.accountKey || 'laura_kocher', true);
+        };
+
+        window.exitPatientBookingPreview = function() {
+            if (unsubscribePublicPortal) {
+                unsubscribePublicPortal();
+                unsubscribePublicPortal = null;
+            }
+            publicPortalState.active = false;
+            publicPortalState.isPreview = false;
+            document.getElementById('public-booking-screen').classList.add('hidden');
+            document.getElementById('public-preview-topbar').classList.add('hidden');
+            refreshAllUI();
+        };
+
+        async function openPublicBookingPortal(accountKey, isPreview = false) {
+            publicPortalState.active = true;
+            publicPortalState.isPreview = isPreview;
+            publicPortalState.accountKey = accountKey;
+            publicPortalState.selectedDate = '';
+            publicPortalState.selectedTime = '';
+
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('public-booking-screen').classList.remove('hidden');
+            document.getElementById('public-booking-form-wrap').classList.remove('hidden');
+            document.getElementById('public-booking-success-wrap').classList.add('hidden');
+
+            if (isPreview) {
+                document.getElementById('public-preview-topbar').classList.remove('hidden');
+                publicPortalState.workspaceData = {
+                    settings: appState.settings,
+                    patients: appState.patients,
+                    appointments: appState.appointments,
+                    blockedSlots: appState.blockedSlots
+                };
+                renderPublicBookingPortalUI();
+            } else {
+                document.getElementById('public-preview-topbar').classList.add('hidden');
+                // Cargar desde Cloud Firestore o espejo local
+                let data = null;
+                if (db) {
+                    try {
+                        data = await fetchWorkspaceFromCloud(accountKey);
+                    } catch (e) {}
+                }
+                if (!data) {
+                    const localRaw = localStorage.getItem(LOCAL_MIRROR_PREFIX + accountKey);
+                    if (localRaw) {
+                        try { data = JSON.parse(localRaw); } catch (e) {}
+                    }
+                }
+                publicPortalState.workspaceData = data || {
+                    settings: ensureWeeklySchedule({
+                        psychName: 'Lic. Laura Kocher',
+                        psychPhone: '',
+                        alias: 'laura.kocher.mp',
+                        bankName: 'Mercado Pago',
+                        defaultFee: 25000,
+                        startHour: 9,
+                        endHour: 20
+                    }),
+                    patients: [],
+                    appointments: [],
+                    blockedSlots: []
+                };
+                renderPublicBookingPortalUI();
+
+                // Suscribir en tiempo real para que si otro paciente toma un turno se actualice al instante
+                if (db) {
+                    if (unsubscribePublicPortal) unsubscribePublicPortal();
+                    const docRef = getPrimaryWorkspaceRef(accountKey);
+                    unsubscribePublicPortal = onSnapshot(
+                        docRef,
+                        (snap) => {
+                            if (snap.exists()) {
+                                publicPortalState.workspaceData = snap.data();
+                                renderPublicBookingPortalUI();
+                            }
+                        },
+                        (err) => console.warn('Suscripción de portal público:', err)
+                    );
+                }
+            }
+        }
+
+        function getPublicAvailableSlotsForDate(dateISO, wsData) {
+            const settings = ensureWeeklySchedule((wsData && wsData.settings) ? wsData.settings : appState.settings);
+            const hours = getWorkingHoursForDate(dateISO, settings);
+            const appts = Array.isArray(wsData?.appointments) ? wsData.appointments : [];
+            const blocked = Array.isArray(wsData?.blockedSlots) ? wsData.blockedSlots : [];
+
+            return hours.filter(hr => {
+                const isBooked = appts.some(a => a.date === dateISO && a.time === hr && a.sessionStatus !== 'Cancelado');
+                const isBlocked = blocked.some(b => b.date === dateISO && b.time === hr);
+                return !isBooked && !isBlocked;
+            });
+        }
+
+        function renderPublicBookingPortalUI() {
+            const ws = publicPortalState.workspaceData || {};
+            const settings = ensureWeeklySchedule(ws.settings || appState.settings);
+
+            document.getElementById('public-psych-name').textContent = settings.psychName || 'Lic. Laura Kocher';
+            document.getElementById('public-fee-display').innerHTML = `Arancel de sesión: <strong class="font-mono-num text-clinical-plum">${formatCurrency(settings.defaultFee || 25000)}</strong>`;
+
+            // Buscar próximos 21 días y filtrar aquellos que están habilitados por la profesional
+            const upcomingDays = [];
+            const baseDate = new Date();
+            for (let i = 0; i < 21; i++) {
+                const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + i);
+                if (d.getDay() === 0) continue; // Excluir domingos
+                const iso = formatDateISO(d);
+                const configuredHours = getWorkingHoursForDate(iso, settings);
+                if (configuredHours.length > 0) {
+                    const freeHours = getPublicAvailableSlotsForDate(iso, ws);
+                    upcomingDays.push({ iso, freeHours, totalConfigured: configuredHours.length });
+                }
+            }
+
+            const availableDaysWithSlots = upcomingDays.filter(d => d.freeHours.length > 0);
+            if (!publicPortalState.selectedDate || !availableDaysWithSlots.some(d => d.iso === publicPortalState.selectedDate)) {
+                publicPortalState.selectedDate = availableDaysWithSlots.length > 0 ? availableDaysWithSlots[0].iso : '';
+                publicPortalState.selectedTime = '';
+            }
+
+            const datesGrid = document.getElementById('public-dates-grid');
+            if (availableDaysWithSlots.length === 0) {
+                datesGrid.innerHTML = `
+                    <div class="col-span-full p-5 rounded-xl bg-clinical-subtle/60 border border-clinical-border text-center text-xs text-clinical-secondary">
+                        No hay horarios disponibles en los próximos días. Por favor consultá directamente con el consultorio.
+                    </div>
+                `;
+            } else {
+                datesGrid.innerHTML = availableDaysWithSlots.slice(0, 10).map(item => {
+                    const isSel = item.iso === publicPortalState.selectedDate;
+                    return `
+                        <button type="button" onclick="selectPublicBookingDate('${item.iso}')" class="p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                            isSel
+                                ? 'bg-clinical-plum text-white border-clinical-plum shadow-card'
+                                : 'bg-white border-clinical-border text-clinical-ink hover:border-clinical-plum'
+                        }">
+                            <span class="text-xs font-semibold">${formatHumanDate(item.iso)}</span>
+                            <span class="font-mono-num text-[11px] mt-1 ${isSel ? 'text-purple-100' : 'text-clinical-paidText'}">
+                                ${item.freeHours.length} ${item.freeHours.length === 1 ? 'horario libre' : 'horarios libres'}
+                            </span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            // Renderizar horarios del día elegido
+            const hoursGrid = document.getElementById('public-hours-grid');
+            const selectedDayObj = availableDaysWithSlots.find(d => d.iso === publicPortalState.selectedDate);
+            document.getElementById('public-selected-date-label').textContent = publicPortalState.selectedDate
+                ? formatHumanDate(publicPortalState.selectedDate, true)
+                : '';
+
+            if (!selectedDayObj || selectedDayObj.freeHours.length === 0) {
+                hoursGrid.innerHTML = `<p class="col-span-full text-xs text-clinical-muted">Seleccioná una fecha disponible arriba.</p>`;
+            } else {
+                if (!publicPortalState.selectedTime || !selectedDayObj.freeHours.includes(publicPortalState.selectedTime)) {
+                    publicPortalState.selectedTime = selectedDayObj.freeHours[0];
+                }
+                hoursGrid.innerHTML = selectedDayObj.freeHours.map(hr => {
+                    const isSelHr = hr === publicPortalState.selectedTime;
+                    return `
+                        <button type="button" onclick="selectPublicBookingTime('${hr}')" class="font-mono-num py-2.5 px-3 rounded-xl border text-xs font-semibold transition ${
+                            isSelHr
+                                ? 'bg-clinical-plum text-white border-clinical-plum shadow-card'
+                                : 'bg-clinical-paidBg/70 text-clinical-paidText border-emerald-200 hover:border-clinical-plum'
+                        }">
+                            ${hr} hs
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            updatePublicSelectionSummary();
+        }
+
+        window.selectPublicBookingDate = function(dateISO) {
+            publicPortalState.selectedDate = dateISO;
+            publicPortalState.selectedTime = '';
+            renderPublicBookingPortalUI();
+        };
+
+        window.selectPublicBookingTime = function(timeStr) {
+            publicPortalState.selectedTime = timeStr;
+            renderPublicBookingPortalUI();
+        };
+
+        function updatePublicSelectionSummary() {
+            const summaryEl = document.getElementById('public-selection-summary-text');
+            if (publicPortalState.selectedDate && publicPortalState.selectedTime) {
+                summaryEl.textContent = `${formatHumanDate(publicPortalState.selectedDate, true)} a las ${publicPortalState.selectedTime} hs (50 min)`;
+            } else {
+                summaryEl.textContent = 'Seleccioná un día y horario arriba';
+            }
+        }
+
+        window.submitPublicPatientBooking = async function(e) {
+            e.preventDefault();
+            if (!publicPortalState.selectedDate || !publicPortalState.selectedTime) {
+                showToast('Seleccioná primero un día y horario disponible');
+                return;
+            }
+
+            const name = document.getElementById('public-patient-name').value.trim();
+            const phone = document.getElementById('public-patient-phone').value.trim();
+            const modality = document.getElementById('public-patient-modality').value;
+            const notes = document.getElementById('public-patient-notes').value.trim();
+
+            if (!name || !phone) {
+                showToast('Completá tu nombre y teléfono de WhatsApp');
+                return;
+            }
+
+            const btn = document.getElementById('public-submit-btn');
+            btn.disabled = true;
+
+            try {
+                const accountKey = publicPortalState.accountKey || appState.accountKey || 'laura_kocher';
+                let ws = publicPortalState.workspaceData;
+                if (db && !publicPortalState.isPreview) {
+                    const latest = await fetchWorkspaceFromCloud(accountKey);
+                    if (latest) ws = latest;
+                }
+                if (!ws) ws = { settings: appState.settings, patients: [], appointments: [], blockedSlots: [] };
+
+                const settings = ensureWeeklySchedule(ws.settings || appState.settings);
+                const patients = Array.isArray(ws.patients) ? [...ws.patients] : [];
+                const appointments = Array.isArray(ws.appointments) ? [...ws.appointments] : [];
+                const blockedSlots = Array.isArray(ws.blockedSlots) ? [...ws.blockedSlots] : [];
+
+                // Verificar que el turno no haya sido ocupado hace un segundo
+                const alreadyTaken = appointments.some(a =>
+                    a.date === publicPortalState.selectedDate &&
+                    a.time === publicPortalState.selectedTime &&
+                    a.sessionStatus !== 'Cancelado'
+                );
+                if (alreadyTaken) {
+                    showToast('Ese horario acaba de ser reservado. Por favor elegí otro.');
+                    renderPublicBookingPortalUI();
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Buscar si el paciente ya existe por teléfono o nombre, o darlo de alta automáticamente
+                const cleanInputPhone = cleanPhoneForWhatsApp(phone);
+                let existingPatient = patients.find(p =>
+                    (cleanInputPhone && cleanPhoneForWhatsApp(p.phone) === cleanInputPhone) ||
+                    p.name.toLowerCase() === name.toLowerCase()
+                );
+
+                const fee = Number(settings.defaultFee) || 25000;
+                if (!existingPatient) {
+                    existingPatient = {
+                        id: 'p_' + Date.now(),
+                        name,
+                        phone,
+                        defaultFee: fee,
+                        modality,
+                        notes: 'Alta desde Portal Web de Reservas'
+                    };
+                    patients.push(existingPatient);
+                }
+
+                const newAppt = {
+                    id: 'a_' + Date.now(),
+                    patientId: existingPatient.id,
+                    patientName: existingPatient.name,
+                    phone,
+                    date: publicPortalState.selectedDate,
+                    time: publicPortalState.selectedTime,
+                    duration: 50,
+                    modality,
+                    sessionStatus: 'Programado',
+                    price: existingPatient.defaultFee || fee,
+                    dueDate: publicPortalState.selectedDate,
+                    paymentStatus: 'unpaid',
+                    paymentMethod: '',
+                    paidAt: null,
+                    notes: notes ? `[Reserva Web] ${notes}` : 'Turno reservado por el paciente desde el link web',
+                    bookedByPatient: true
+                };
+
+                appointments.push(newAppt);
+
+                const updatedPayload = {
+                    ...ws,
+                    accountKey,
+                    settings,
+                    patients,
+                    appointments,
+                    blockedSlots,
+                    updatedAt: new Date().toISOString()
+                };
+
+                publicPortalState.workspaceData = updatedPayload;
+
+                if (publicPortalState.isPreview || accountKey === appState.accountKey) {
+                    appState.patients = patients;
+                    appState.appointments = appointments;
+                    await saveStateToCloudAndLocal();
+                    refreshAllUI();
+                } else {
+                    try {
+                        localStorage.setItem(LOCAL_MIRROR_PREFIX + accountKey, JSON.stringify(updatedPayload));
+                    } catch (e) {}
+                    if (db) {
+                        const primaryRef = getPrimaryWorkspaceRef(accountKey);
+                        await setDoc(primaryRef, updatedPayload, { merge: true });
+                    }
+                }
+
+                // Mostrar confirmación exitosa
+                document.getElementById('public-booking-form-wrap').classList.add('hidden');
+                document.getElementById('public-booking-success-wrap').classList.remove('hidden');
+                document.getElementById('public-success-details').textContent =
+                    `Te esperamos el ${formatHumanDate(newAppt.date, true)} a las ${newAppt.time} hs (Modalidad ${newAppt.modality}).`;
+                document.getElementById('public-success-psych').textContent = settings.psychName || 'Lic. Laura Kocher';
+                document.getElementById('public-success-alias').textContent = settings.alias || 'laura.kocher.mp';
+
+                const waBtn = document.getElementById('public-success-wa-btn');
+                waBtn.onclick = () => {
+                    const psychPhone = cleanPhoneForWhatsApp(settings.psychPhone || '');
+                    const text = `Hola ${settings.psychName || 'Lic. Laura Kocher'}, ¿cómo estás? Soy ${name}. Acabo de reservar un turno desde tu link web para el día ${formatHumanDate(newAppt.date, true)} a las ${newAppt.time} hs (modalidad ${newAppt.modality}). Muchas gracias.`;
+                    const waUrl = psychPhone
+                        ? `https://wa.me/${psychPhone}?text=${encodeURIComponent(text)}`
+                        : `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(waUrl, '_blank', 'noopener,noreferrer');
+                };
+
+                showToast('Turno reservado y sincronizado en la agenda');
+            } catch (err) {
+                console.error('Error guardando reserva pública:', err);
+                showToast('No se pudo registrar el turno. Intentá nuevamente.');
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        window.resetPublicBookingForm = function() {
+            document.getElementById('public-patient-name').value = '';
+            document.getElementById('public-patient-phone').value = '';
+            document.getElementById('public-patient-notes').value = '';
+            document.getElementById('public-booking-success-wrap').classList.add('hidden');
+            document.getElementById('public-booking-form-wrap').classList.remove('hidden');
+            renderPublicBookingPortalUI();
+        };
+
+        // --- 10. VISTA 3: HONORARIOS, COBROS E HISTORIAL ---
         window.renderFinanzasView = function() {
             const today = getTodayISO();
             const activeAppts = appState.appointments.filter(a => a.sessionStatus !== 'Cancelado');
@@ -2378,7 +3564,6 @@
                 }).join('');
             }
 
-            // Historial de transacciones
             const q = (document.getElementById('fin-history-search').value || '').toLowerCase().trim();
             let history = [...paidAll].filter(a => {
                 if (!q) return true;
@@ -2467,7 +3652,7 @@
             showToast(`Estado contable revertido a pendiente`);
         };
 
-        // --- 9. VISTA 4: DIRECTORIO DE PACIENTES Y EXPEDIENTE LATERAL ---
+        // --- 11. VISTA 4: DIRECTORIO DE PACIENTES Y EXPEDIENTE LATERAL ---
         window.renderPatientsView = function() {
             const q = (document.getElementById('patient-search-input').value || '').toLowerCase().trim();
             const filtered = appState.patients.filter(p => {
@@ -2487,7 +3672,7 @@
                         <div class="max-w-sm mx-auto">
                             <h4 class="text-sm font-semibold text-clinical-ink">Directorio de pacientes vacío</h4>
                             <p class="text-xs text-clinical-secondary mt-1">
-                                Registrá a tus pacientes con su contacto de WhatsApp y arancel habitual para agilizar la asignación de turnos.
+                                Registrá a tus pacientes manualmente o compartí tu link de reservas para que se registren al pedir turno.
                             </p>
                         </div>
                         <div class="pt-1">
@@ -2631,7 +3816,7 @@
             document.getElementById('drawer-patient-history').classList.add('hidden');
         };
 
-        // --- 10. COMUNICACIONES FORMALES POR WHATSAPP (CERO EMOJIS) ---
+        // --- 12. COMUNICACIONES FORMALES POR WHATSAPP (CERO EMOJIS) ---
         window.sendWhatsAppAppointmentMessage = function(apptId) {
             const appt = appState.appointments.find(a => a.id === apptId);
             if (!appt) return;
@@ -2677,7 +3862,7 @@
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
         };
 
-        // --- 11. GESTIÓN DE MODALES (TURNOS Y PACIENTES) ---
+        // --- 13. GESTIÓN DE MODALES (TURNOS Y PACIENTES) ---
         function populatePatientDropdown(selectedId = '') {
             const sel = document.getElementById('appt-patient-id');
             if (appState.patients.length === 0) {
@@ -2923,7 +4108,7 @@
             );
         };
 
-        // --- 12. ALTA, EDICIÓN Y BAJA DE PACIENTES ---
+        // --- 14. ALTA, EDICIÓN Y BAJA DE PACIENTES ---
         window.openPatientModal = function(patientId = '') {
             if (patientId) {
                 const p = appState.patients.find(x => x.id === patientId);
@@ -3004,10 +4189,12 @@
             );
         };
 
-        // --- 13. CONFIGURACIÓN Y PORTABILIDAD (.JSON) ---
+        // --- 15. CONFIGURACIÓN Y PORTABILIDAD (.JSON) ---
         window.saveSettings = function(e) {
             e.preventDefault();
             appState.settings.psychName = document.getElementById('set-psych-name').value.trim() || 'Lic. Laura Kocher';
+            const psychPhoneEl = document.getElementById('set-psych-phone');
+            if (psychPhoneEl) appState.settings.psychPhone = psychPhoneEl.value.trim();
             appState.settings.alias = document.getElementById('set-psych-alias').value.trim() || 'laura.kocher.mp';
             appState.settings.bankName = document.getElementById('set-bank-name').value.trim() || '';
             appState.settings.defaultFee = Number(document.getElementById('set-default-fee').value) || 25000;
@@ -3045,7 +4232,7 @@
             reader.onload = function(e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
-                    if (parsed.settings) appState.settings = { ...appState.settings, ...parsed.settings };
+                    if (parsed.settings) appState.settings = ensureWeeklySchedule({ ...appState.settings, ...parsed.settings });
                     if (Array.isArray(parsed.patients)) appState.patients = parsed.patients;
                     if (Array.isArray(parsed.appointments)) appState.appointments = parsed.appointments;
                     if (Array.isArray(parsed.blockedSlots)) appState.blockedSlots = parsed.blockedSlots;
